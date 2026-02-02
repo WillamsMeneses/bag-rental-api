@@ -39,3 +39,14 @@ export class LoginDto {
   @IsNotEmpty()
   password: string;
 }
+
+export class OAuthDto {
+  @IsEmail()
+  email!: string;
+
+  @IsString()
+  provider!: 'google' | 'facebook';
+
+  @IsString()
+  providerId!: string;
+}

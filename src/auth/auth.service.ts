@@ -3,12 +3,17 @@ import {
   UnauthorizedException,
   BadRequestException,
 } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { UsersService } from 'src/users/users.service';
-import { CheckEmailDto, LoginDto, RegisterDto } from './dto/auth.dto';
+import { CheckEmailDto, LoginDto, OAuthDto, RegisterDto } from './dto/auth.dto';
+import { AuthProvider } from 'src/users/entities/user.entity';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly jwtService: JwtService,
+  ) {}
 
   async checkEmail(
     checkEmailDto: CheckEmailDto,
@@ -67,5 +72,20 @@ export class AuthService {
         email: user.email,
       },
     };
+  }
+
+  async handleOAuth(oauthDto: OAuthDto) {
+    const user = await this.usersService.findOrCreateOAuthUser(
+      oauthDto.email,
+      oauthDto.providerId,
+      oauthDto.provider === 'google'
+        ? AuthProvider.GOOGLE
+        : AuthProvider.FACEBOOK,
+    );
+
+    // Generás JWT
+    const token = this.jwtService.sign({ userId: user.id, email: user.email });
+
+    return { user: { id: user.id, email: user.email }, token };
   }
 }
