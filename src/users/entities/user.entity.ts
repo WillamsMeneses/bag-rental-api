@@ -20,7 +20,12 @@ export class User {
   @Column({ unique: true })
   email!: string;
 
-  @Column({ nullable: true })
+  // EXPLÍCITO: tipo PostgreSQL y nullable
+  @Column({
+    type: 'varchar',
+    nullable: true,
+    length: 255, // Para passwords hasheadas
+  })
   password!: string | null;
 
   @Column({
@@ -30,7 +35,11 @@ export class User {
   })
   authProvider!: AuthProvider;
 
-  @Column({ nullable: true })
+  @Column({
+    type: 'varchar',
+    nullable: true,
+    length: 255,
+  })
   providerId!: string | null;
 
   @Column({ default: true })

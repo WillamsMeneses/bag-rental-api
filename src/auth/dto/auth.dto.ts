@@ -5,18 +5,32 @@ import {
   MinLength,
   Matches,
 } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class CheckEmailDto {
+  @ApiProperty({
+    example: 'user@example.com',
+    description: 'User email address',
+  })
   @IsEmail()
   @IsNotEmpty()
-  email: string;
+  email!: string;
 }
 
 export class RegisterDto {
+  @ApiProperty({
+    example: 'user@example.com',
+    description: 'User email address',
+  })
   @IsEmail()
   @IsNotEmpty()
-  email: string;
+  email!: string;
 
+  @ApiProperty({
+    example: 'Password123!',
+    description:
+      'Password must contain at least 8 characters, one uppercase, one lowercase, one number and one special character',
+  })
   @IsString()
   @IsNotEmpty()
   @MinLength(8)
@@ -27,26 +41,23 @@ export class RegisterDto {
         'Password must contain at least one uppercase letter, one lowercase letter, one number and one special character',
     },
   )
-  password: string;
+  password!: string;
 }
 
 export class LoginDto {
+  @ApiProperty({
+    example: 'user@example.com',
+    description: 'User email address',
+  })
   @IsEmail()
   @IsNotEmpty()
-  email: string;
-
-  @IsString()
-  @IsNotEmpty()
-  password: string;
-}
-
-export class OAuthDto {
-  @IsEmail()
   email!: string;
 
+  @ApiProperty({
+    example: 'Password123!',
+    description: 'User password',
+  })
   @IsString()
-  provider!: 'google' | 'facebook';
-
-  @IsString()
-  providerId!: string;
+  @IsNotEmpty()
+  password!: string;
 }

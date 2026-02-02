@@ -4,9 +4,8 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { UsersService } from 'src/users/users.service';
-import { CheckEmailDto, LoginDto, OAuthDto, RegisterDto } from './dto/auth.dto';
-import { AuthProvider } from 'src/users/entities/user.entity';
+import { UsersService } from '../users/users.service';
+import { CheckEmailDto, RegisterDto, LoginDto } from './dto/auth.dto';
 
 @Injectable()
 export class AuthService {
@@ -25,9 +24,10 @@ export class AuthService {
     };
   }
 
-  async register(
-    registerDto: RegisterDto,
-  ): Promise<{ user: { id: string; email: string } }> {
+  async register(registerDto: RegisterDto): Promise<{
+    user: { id: string; email: string };
+    accessToken: string;
+  }> {
     const existingUser = await this.usersService.findByEmail(registerDto.email);
     if (existingUser) {
       throw new BadRequestException('Email already registered');
@@ -38,17 +38,21 @@ export class AuthService {
       registerDto.password,
     );
 
+    const accessToken = this.generateToken(user.id, user.email);
+
     return {
       user: {
         id: user.id,
         email: user.email,
       },
+      accessToken,
     };
   }
 
-  async login(
-    loginDto: LoginDto,
-  ): Promise<{ user: { id: string; email: string } }> {
+  async login(loginDto: LoginDto): Promise<{
+    user: { id: string; email: string };
+    accessToken: string;
+  }> {
     const user = await this.usersService.findByEmail(loginDto.email);
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
@@ -66,26 +70,19 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    const accessToken = this.generateToken(user.id, user.email);
+
     return {
       user: {
         id: user.id,
         email: user.email,
       },
+      accessToken,
     };
   }
 
-  async handleOAuth(oauthDto: OAuthDto) {
-    const user = await this.usersService.findOrCreateOAuthUser(
-      oauthDto.email,
-      oauthDto.providerId,
-      oauthDto.provider === 'google'
-        ? AuthProvider.GOOGLE
-        : AuthProvider.FACEBOOK,
-    );
-
-    // Generás JWT
-    const token = this.jwtService.sign({ userId: user.id, email: user.email });
-
-    return { user: { id: user.id, email: user.email }, token };
+  private generateToken(userId: string, email: string): string {
+    const payload = { sub: userId, email };
+    return this.jwtService.sign(payload);
   }
 }

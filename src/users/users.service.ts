@@ -37,13 +37,14 @@ export class UsersService {
       throw new ConflictException('Email already exists');
     }
 
+    // CORRECCIÓN: Usar null en lugar de undefined
     const hashedPassword: string | null = password
       ? await bcrypt.hash(password, 10)
       : null;
 
     const user = this.userRepository.create({
       email,
-      password: hashedPassword ?? undefined,
+      password: hashedPassword, // ← SOLO null o string, NUNCA undefined
       authProvider,
     });
 
@@ -66,7 +67,7 @@ export class UsersService {
     if (!user) {
       user = this.userRepository.create({
         email,
-        providerId: providerId ?? undefined,
+        providerId, // ← string o null, no undefined
         authProvider,
         emailVerified: true,
       });
