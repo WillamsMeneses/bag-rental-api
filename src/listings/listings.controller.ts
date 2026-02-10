@@ -63,4 +63,15 @@ export class ListingsController {
   async getListingById(@Param('id') id: string) {
     return this.listingsService.findById(id);
   }
+
+  @Get()
+  @ApiOperation({ summary: 'Get all published listings' })
+  @ApiResponse({
+    status: 200,
+    description: 'All published listings retrieved',
+    type: [ListingResponseDto],
+  })
+  async getAllListings() {
+    return this.listingsService.findAllPublished();
+  }
 }

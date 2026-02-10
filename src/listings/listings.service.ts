@@ -171,4 +171,15 @@ export class ListingsService {
 
     return listing;
   }
+
+  /**
+   * Get all published listings (for dashboard/browse)
+   */
+  async findAllPublished(): Promise<BagListing[]> {
+    return this.listingRepository.find({
+      where: { isPublished: true, isActive: true },
+      relations: ['clubs'],
+      order: { createdAt: 'DESC' },
+    });
+  }
 }

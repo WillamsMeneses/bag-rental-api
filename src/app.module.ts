@@ -13,6 +13,7 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { ListingsModule } from './listings/listings.module';
+import { FavoritesModule } from './favorites/favorites.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { ListingsModule } from './listings/listings.module';
     AuthModule,
     UsersModule,
     ListingsModule,
+    FavoritesModule,
   ],
   providers: [
     {
