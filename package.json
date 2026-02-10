@@ -34,6 +34,7 @@
     "class-validator": "^0.14.3",
     "jsonwebtoken": "^9.0.3",
     "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
     "passport-jwt": "^4.0.1",
     "pg": "^8.18.0",
     "reflect-metadata": "^0.2.2",
