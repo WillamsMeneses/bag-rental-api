@@ -14,9 +14,12 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { ListingsModule } from './listings/listings.module';
 import { FavoritesModule } from './favorites/favorites.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { RentalsModule } from './rentals/rentals.module';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       load: [databaseConfig, jwtConfig, appConfig],
@@ -50,6 +53,7 @@ import { FavoritesModule } from './favorites/favorites.module';
     UsersModule,
     ListingsModule,
     FavoritesModule,
+    RentalsModule,
   ],
   providers: [
     {
