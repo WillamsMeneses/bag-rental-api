@@ -9,6 +9,7 @@ import { ClubHybridDetail } from './entities/club-hybrid-detail.entity';
 import { ClubIronDetail } from './entities/club-iron-detail.entity';
 import { ClubWedgeDetail } from './entities/club-wedge-detail.entity';
 import { ClubPutterDetail } from './entities/club-putter-detail.entity';
+import { Favorite } from '../favorites/entities/favorite.entity';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { ClubPutterDetail } from './entities/club-putter-detail.entity';
       ClubIronDetail,
       ClubWedgeDetail,
       ClubPutterDetail,
+      Favorite,
     ]),
   ],
   controllers: [ListingsController],

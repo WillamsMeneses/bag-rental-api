@@ -3,6 +3,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Favorite } from './entities/favorite.entity';
 import { BagListing } from '../listings/entities/bag-listing.entity';
+import { PaginationDto } from '../common/dto/pagination.dto';
+import {
+  PaginatedResponse,
+  createPaginatedResponse,
+} from '../common/interfaces/paginated-response.interface';
 
 @Injectable()
 export class FavoritesService {
@@ -14,13 +19,12 @@ export class FavoritesService {
   ) {}
 
   /**
-   * Toggle favorite (add or remove)
+   * Toggle favorite
    */
   async toggleFavorite(
     userId: string,
     listingId: string,
   ): Promise<{ isFavorited: boolean }> {
-    // Verificar que el listing existe
     const listing = await this.listingRepository.findOne({
       where: { id: listingId },
     });
@@ -29,17 +33,14 @@ export class FavoritesService {
       throw new NotFoundException('Listing not found');
     }
 
-    // Buscar si ya existe el favorito
     const existingFavorite = await this.favoriteRepository.findOne({
       where: { userId, listingId },
     });
 
     if (existingFavorite) {
-      // Si existe, eliminarlo (unfavorite)
       await this.favoriteRepository.remove(existingFavorite);
       return { isFavorited: false };
     } else {
-      // Si no existe, crearlo (favorite)
       const favorite = this.favoriteRepository.create({
         userId,
         listingId,
@@ -50,38 +51,29 @@ export class FavoritesService {
   }
 
   /**
-   * Get all favorites for a user with listing details
+   * Get user favorites WITH PAGINATION
    */
-  async getUserFavorites(userId: string): Promise<BagListing[]> {
-    const favorites = await this.favoriteRepository.find({
+  async getUserFavorites(
+    userId: string,
+    paginationDto: PaginationDto,
+  ): Promise<PaginatedResponse<BagListing & { isFavorite: boolean }>> {
+    const { page = 1, limit = 10 } = paginationDto;
+    const skip = (page - 1) * limit;
+
+    const [favorites, total] = await this.favoriteRepository.findAndCount({
       where: { userId },
       relations: ['listing', 'listing.clubs'],
       order: { createdAt: 'DESC' },
+      take: limit,
+      skip,
     });
 
-    return favorites.map((fav) => fav.listing);
-  }
+    // Todos son favoritos (obviamente, están en la tabla favorites)
+    const listingsWithFavorite = favorites.map((fav) => ({
+      ...fav.listing,
+      isFavorite: true,
+    }));
 
-  /**
-   * Check if a listing is favorited by user
-   */
-  async isFavorited(userId: string, listingId: string): Promise<boolean> {
-    const favorite = await this.favoriteRepository.findOne({
-      where: { userId, listingId },
-    });
-
-    return !!favorite;
-  }
-
-  /**
-   * Get favorite IDs for a user (useful for bulk checks)
-   */
-  async getUserFavoriteIds(userId: string): Promise<string[]> {
-    const favorites = await this.favoriteRepository.find({
-      where: { userId },
-      select: ['listingId'],
-    });
-
-    return favorites.map((fav) => fav.listingId);
+    return createPaginatedResponse(listingsWithFavorite, total, page, limit);
   }
 }

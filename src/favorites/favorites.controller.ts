@@ -5,18 +5,21 @@ import {
   Param,
   HttpCode,
   HttpStatus,
+  Query,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { FavoritesService } from './favorites.service';
 import {
   CurrentUser,
   CurrentUserData,
 } from '../common/decorators/current-user.decorator';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @ApiTags('Favorites')
 @ApiBearerAuth('JWT-auth')
@@ -36,17 +39,14 @@ export class FavoritesController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all user favorites' })
+  @ApiOperation({ summary: 'Get all user favorites with pagination' })
   @ApiResponse({ status: 200, description: 'Favorites retrieved successfully' })
-  async getUserFavorites(@CurrentUser() user: CurrentUserData) {
-    return this.favoritesService.getUserFavorites(user.id);
-  }
-
-  @Get('ids')
-  @ApiOperation({ summary: 'Get favorite listing IDs' })
-  @ApiResponse({ status: 200, description: 'Favorite IDs retrieved' })
-  async getFavoriteIds(@CurrentUser() user: CurrentUserData) {
-    const ids = await this.favoritesService.getUserFavoriteIds(user.id);
-    return { favoriteIds: ids };
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  async getUserFavorites(
+    @CurrentUser() user: CurrentUserData,
+    @Query() paginationDto: PaginationDto,
+  ) {
+    return this.favoritesService.getUserFavorites(user.id, paginationDto);
   }
 }

@@ -11,6 +11,11 @@ import { BagListing } from '../listings/entities/bag-listing.entity';
 import { CreateRentalDto } from './dto/create-rental.dto';
 import { CheckAvailabilityDto } from './dto/check-availability.dto';
 import { CancelRentalDto } from './dto/cancel-rental.dto';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
+import {
+  createPaginatedResponse,
+  PaginatedResponse,
+} from 'src/common/interfaces/paginated-response.interface';
 
 @Injectable()
 export class RentalsService {
@@ -253,25 +258,45 @@ export class RentalsService {
   }
 
   /**
-   * Get user rentals (as renter)
+   * Get user rentals (as renter) WITH PAGINATION
    */
-  async getUserRentals(userId: string): Promise<Rental[]> {
-    return this.rentalRepository.find({
+  async getUserRentals(
+    userId: string,
+    paginationDto: PaginationDto,
+  ): Promise<PaginatedResponse<Rental>> {
+    const { page = 1, limit = 10 } = paginationDto;
+    const skip = (page - 1) * limit;
+
+    const [rentals, total] = await this.rentalRepository.findAndCount({
       where: { renterId: userId },
       relations: ['listing', 'owner'],
       order: { createdAt: 'DESC' },
+      take: limit,
+      skip,
     });
+
+    return createPaginatedResponse(rentals, total, page, limit);
   }
 
   /**
-   * Get owner rentals (as owner)
+   * Get owner rentals (as owner) WITH PAGINATION
    */
-  async getOwnerRentals(userId: string): Promise<Rental[]> {
-    return this.rentalRepository.find({
+  async getOwnerRentals(
+    userId: string,
+    paginationDto: PaginationDto,
+  ): Promise<PaginatedResponse<Rental>> {
+    const { page = 1, limit = 10 } = paginationDto;
+    const skip = (page - 1) * limit;
+
+    const [rentals, total] = await this.rentalRepository.findAndCount({
       where: { ownerId: userId },
       relations: ['listing', 'renter'],
       order: { createdAt: 'DESC' },
+      take: limit,
+      skip,
     });
+
+    return createPaginatedResponse(rentals, total, page, limit);
   }
 
   /**

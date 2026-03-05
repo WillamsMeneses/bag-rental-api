@@ -6,12 +6,15 @@ import {
   Param,
   HttpCode,
   HttpStatus,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { ListingsService } from './listings.service';
 import { CreateListingDto } from './dto/create-listing.dto';
@@ -20,13 +23,42 @@ import {
   CurrentUser,
   CurrentUserData,
 } from '../common/decorators/current-user.decorator';
+import { Public } from '../auth/decorators/public.decorator';
+import { PaginationDto } from '../common/dto/pagination.dto';
+import { OptionalJwtAuthGuard } from 'src/common/guards/optional-jwt.guard';
+import {
+  OptionalUser,
+  OptionalUserData,
+} from 'src/common/decorators/optional-auth.decorator';
 
 @ApiTags('Listings')
-@ApiBearerAuth('JWT-auth')
 @Controller('listings')
 export class ListingsController {
   constructor(private readonly listingsService: ListingsService) {}
 
+  @Public()
+  @UseGuards(OptionalJwtAuthGuard)
+  @Get()
+  @ApiOperation({
+    summary: 'Get all published listings',
+    description:
+      'Public endpoint. If user is authenticated, isFavorite field will be populated.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'All published listings retrieved',
+    type: [ListingResponseDto],
+  })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  async getAllListings(
+    @OptionalUser() user: OptionalUserData | null,
+    @Query() paginationDto: PaginationDto,
+  ) {
+    return this.listingsService.findAllPublished(paginationDto, user?.id);
+  }
+
+  @ApiBearerAuth('JWT-auth')
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new bag listing' })
@@ -42,6 +74,7 @@ export class ListingsController {
     return this.listingsService.createListing(user.id, createListingDto);
   }
 
+  @ApiBearerAuth('JWT-auth')
   @Get('my-listings')
   @ApiOperation({ summary: 'Get current user listings' })
   @ApiResponse({
@@ -49,10 +82,16 @@ export class ListingsController {
     description: 'User listings retrieved successfully',
     type: [ListingResponseDto],
   })
-  async getMyListings(@CurrentUser() user: CurrentUserData) {
-    return this.listingsService.findUserListings(user.id);
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  async getMyListings(
+    @CurrentUser() user: CurrentUserData,
+    @Query() paginationDto: PaginationDto,
+  ) {
+    return this.listingsService.findUserListings(user.id, paginationDto);
   }
 
+  @ApiBearerAuth('JWT-auth')
   @Get(':id')
   @ApiOperation({ summary: 'Get listing by ID' })
   @ApiResponse({
@@ -60,18 +99,10 @@ export class ListingsController {
     description: 'Listing retrieved successfully',
     type: ListingResponseDto,
   })
-  async getListingById(@Param('id') id: string) {
-    return this.listingsService.findById(id);
-  }
-
-  @Get()
-  @ApiOperation({ summary: 'Get all published listings' })
-  @ApiResponse({
-    status: 200,
-    description: 'All published listings retrieved',
-    type: [ListingResponseDto],
-  })
-  async getAllListings() {
-    return this.listingsService.findAllPublished();
+  async getListingById(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    return this.listingsService.findById(id, user.id);
   }
 }

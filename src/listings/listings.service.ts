@@ -9,6 +9,12 @@ import { ClubIronDetail } from './entities/club-iron-detail.entity';
 import { ClubWedgeDetail } from './entities/club-wedge-detail.entity';
 import { ClubPutterDetail } from './entities/club-putter-detail.entity';
 import { CreateListingDto } from './dto/create-listing.dto';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
+import {
+  createPaginatedResponse,
+  PaginatedResponse,
+} from 'src/common/interfaces/paginated-response.interface';
+import { Favorite } from 'src/favorites/entities/favorite.entity';
 
 @Injectable()
 export class ListingsService {
@@ -27,6 +33,8 @@ export class ListingsService {
     private readonly wedgeDetailRepository: Repository<ClubWedgeDetail>,
     @InjectRepository(ClubPutterDetail)
     private readonly putterDetailRepository: Repository<ClubPutterDetail>,
+    @InjectRepository(Favorite)
+    private readonly favoriteRepository: Repository<Favorite>,
   ) {}
 
   async createListing(
@@ -144,15 +152,34 @@ export class ListingsService {
     return completeListing;
   }
 
-  async findUserListings(userId: string): Promise<BagListing[]> {
-    return this.listingRepository.find({
+  /**
+   * Get user's listings with pagination
+   */
+  async findUserListings(
+    userId: string,
+    paginationDto: PaginationDto,
+  ): Promise<PaginatedResponse<BagListing>> {
+    const { page = 1, limit = 10 } = paginationDto;
+    const skip = (page - 1) * limit;
+
+    const [listings, total] = await this.listingRepository.findAndCount({
       where: { userId },
       relations: ['clubs'],
       order: { createdAt: 'DESC' },
+      take: limit,
+      skip,
     });
+
+    return createPaginatedResponse(listings, total, page, limit);
   }
 
-  async findById(id: string): Promise<BagListing> {
+  /**
+   * Find listing by ID with isFavorite
+   */
+  async findById(
+    id: string,
+    userId?: string,
+  ): Promise<BagListing & { isFavorite: boolean }> {
     const listing = await this.listingRepository.findOne({
       where: { id },
       relations: [
@@ -169,17 +196,56 @@ export class ListingsService {
       throw new NotFoundException('Listing not found');
     }
 
-    return listing;
+    // Check if favorited
+    let isFavorite = false;
+    if (userId) {
+      const favorite = await this.favoriteRepository.findOne({
+        where: { userId, listingId: id },
+      });
+      isFavorite = !!favorite;
+    }
+
+    return {
+      ...listing,
+      isFavorite,
+    };
   }
 
   /**
-   * Get all published listings (for dashboard/browse)
+   * Get all published listings with pagination and optional isFavorite
    */
-  async findAllPublished(): Promise<BagListing[]> {
-    return this.listingRepository.find({
+  async findAllPublished(
+    paginationDto: PaginationDto,
+    userId?: string,
+  ): Promise<PaginatedResponse<BagListing & { isFavorite: boolean }>> {
+    const { page = 1, limit = 10 } = paginationDto;
+    const skip = (page - 1) * limit;
+
+    // Get listings with pagination
+    const [listings, total] = await this.listingRepository.findAndCount({
       where: { isPublished: true, isActive: true },
       relations: ['clubs'],
       order: { createdAt: 'DESC' },
+      take: limit,
+      skip,
     });
+
+    // Get favorite IDs if user is logged in
+    let favoriteIds: Set<string> = new Set();
+    if (userId) {
+      const favorites = await this.favoriteRepository.find({
+        where: { userId },
+        select: ['listingId'],
+      });
+      favoriteIds = new Set(favorites.map((f) => f.listingId));
+    }
+
+    // Add isFavorite field to each listing
+    const listingsWithFavorite = listings.map((listing) => ({
+      ...listing,
+      isFavorite: favoriteIds.has(listing.id),
+    }));
+
+    return createPaginatedResponse(listingsWithFavorite, total, page, limit);
   }
 }

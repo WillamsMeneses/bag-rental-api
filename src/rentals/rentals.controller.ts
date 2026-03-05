@@ -7,12 +7,14 @@ import {
   HttpCode,
   HttpStatus,
   Patch,
+  Query,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { RentalsService } from './rentals.service';
 import { CreateRentalDto } from './dto/create-rental.dto';
@@ -22,6 +24,7 @@ import {
   CurrentUser,
   CurrentUserData,
 } from '../common/decorators/current-user.decorator';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @ApiTags('Rentals')
 @ApiBearerAuth('JWT-auth')
@@ -80,18 +83,42 @@ export class RentalsController {
     return this.rentalsService.cancelByOwner(user.id, id, dto);
   }
 
+  // @Get('my-rentals')
+  // @ApiOperation({ summary: 'Get my rentals (as renter)' })
+  // @ApiResponse({ status: 200, description: 'Rentals retrieved' })
+  // async getMyRentals(@CurrentUser() user: CurrentUserData) {
+  //   return this.rentalsService.getUserRentals(user.id);
+  // }
+
+  // @Get('owner-rentals')
+  // @ApiOperation({ summary: 'Get rentals for my listings (as owner)' })
+  // @ApiResponse({ status: 200, description: 'Rentals retrieved' })
+  // async getOwnerRentals(@CurrentUser() user: CurrentUserData) {
+  //   return this.rentalsService.getOwnerRentals(user.id);
+  // }
+
   @Get('my-rentals')
   @ApiOperation({ summary: 'Get my rentals (as renter)' })
   @ApiResponse({ status: 200, description: 'Rentals retrieved' })
-  async getMyRentals(@CurrentUser() user: CurrentUserData) {
-    return this.rentalsService.getUserRentals(user.id);
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  async getMyRentals(
+    @CurrentUser() user: CurrentUserData,
+    @Query() paginationDto: PaginationDto,
+  ) {
+    return this.rentalsService.getUserRentals(user.id, paginationDto);
   }
 
   @Get('owner-rentals')
   @ApiOperation({ summary: 'Get rentals for my listings (as owner)' })
   @ApiResponse({ status: 200, description: 'Rentals retrieved' })
-  async getOwnerRentals(@CurrentUser() user: CurrentUserData) {
-    return this.rentalsService.getOwnerRentals(user.id);
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  async getOwnerRentals(
+    @CurrentUser() user: CurrentUserData,
+    @Query() paginationDto: PaginationDto,
+  ) {
+    return this.rentalsService.getOwnerRentals(user.id, paginationDto);
   }
 
   @Get('listings/:listingId/blocked-dates')
