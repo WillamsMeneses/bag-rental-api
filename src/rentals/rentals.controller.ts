@@ -83,20 +83,6 @@ export class RentalsController {
     return this.rentalsService.cancelByOwner(user.id, id, dto);
   }
 
-  // @Get('my-rentals')
-  // @ApiOperation({ summary: 'Get my rentals (as renter)' })
-  // @ApiResponse({ status: 200, description: 'Rentals retrieved' })
-  // async getMyRentals(@CurrentUser() user: CurrentUserData) {
-  //   return this.rentalsService.getUserRentals(user.id);
-  // }
-
-  // @Get('owner-rentals')
-  // @ApiOperation({ summary: 'Get rentals for my listings (as owner)' })
-  // @ApiResponse({ status: 200, description: 'Rentals retrieved' })
-  // async getOwnerRentals(@CurrentUser() user: CurrentUserData) {
-  //   return this.rentalsService.getOwnerRentals(user.id);
-  // }
-
   @Get('my-rentals')
   @ApiOperation({ summary: 'Get my rentals (as renter)' })
   @ApiResponse({ status: 200, description: 'Rentals retrieved' })
