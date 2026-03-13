@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { FindOptionsWhere, Repository } from 'typeorm';
 import { BagListing } from './entities/bag-listing.entity';
 import { Club, ClubCategory } from './entities/club.entity';
 import { ClubWoodDetail } from './entities/club-wood-detail.entity';
@@ -15,6 +15,7 @@ import {
   PaginatedResponse,
 } from 'src/common/interfaces/paginated-response.interface';
 import { Favorite } from 'src/favorites/entities/favorite.entity';
+import { ListingStatusFilter } from './dto/listing-pagination.dto';
 
 @Injectable()
 export class ListingsService {
@@ -152,18 +153,45 @@ export class ListingsService {
     return completeListing;
   }
 
-  /**
-   * Get user's listings with pagination
-   */
   async findUserListings(
     userId: string,
     paginationDto: PaginationDto,
+    status?: ListingStatusFilter,
   ): Promise<PaginatedResponse<BagListing>> {
     const { page = 1, limit = 10 } = paginationDto;
     const skip = (page - 1) * limit;
 
+    if (status === ListingStatusFilter.RENTED) {
+      const [listings, total] = await this.listingRepository
+        .createQueryBuilder('listing')
+        .innerJoin(
+          'rentals',
+          'rental',
+          'rental.listing_id = listing.id AND rental.owner_id = :userId AND rental.status IN (:...rentalStatuses)',
+          { userId, rentalStatuses: ['confirmed', 'active'] },
+        )
+        .leftJoinAndSelect('listing.clubs', 'clubs')
+        .where('listing.userId = :userId', { userId })
+        .orderBy('listing.createdAt', 'DESC')
+        .take(limit)
+        .skip(skip)
+        .getManyAndCount();
+
+      return createPaginatedResponse(listings, total, page, limit);
+    }
+
+    const where: FindOptionsWhere<BagListing> = { userId };
+
+    if (status === ListingStatusFilter.ACTIVE) {
+      where.isPublished = true;
+      where.isActive = true;
+    } else if (status === ListingStatusFilter.PAUSED) {
+      where.isPublished = true;
+      where.isActive = false;
+    }
+
     const [listings, total] = await this.listingRepository.findAndCount({
-      where: { userId },
+      where,
       relations: ['clubs'],
       order: { createdAt: 'DESC' },
       take: limit,

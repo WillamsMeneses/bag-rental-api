@@ -30,6 +30,7 @@ import {
   OptionalUser,
   OptionalUserData,
 } from 'src/common/decorators/optional-auth.decorator';
+import { ListingPaginationDto } from './dto/listing-pagination.dto';
 
 @ApiTags('Listings')
 @Controller('listings')
@@ -77,18 +78,22 @@ export class ListingsController {
   @ApiBearerAuth('JWT-auth')
   @Get('my-listings')
   @ApiOperation({ summary: 'Get current user listings' })
-  @ApiResponse({
-    status: 200,
-    description: 'User listings retrieved successfully',
-    type: [ListingResponseDto],
-  })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['active', 'paused', 'rented'],
+  })
   async getMyListings(
     @CurrentUser() user: CurrentUserData,
-    @Query() paginationDto: PaginationDto,
+    @Query() paginationDto: ListingPaginationDto,
   ) {
-    return this.listingsService.findUserListings(user.id, paginationDto);
+    return this.listingsService.findUserListings(
+      user.id,
+      paginationDto,
+      paginationDto.status,
+    );
   }
 
   @ApiBearerAuth('JWT-auth')
