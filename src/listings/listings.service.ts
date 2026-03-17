@@ -276,4 +276,24 @@ export class ListingsService {
 
     return createPaginatedResponse(listingsWithFavorite, total, page, limit);
   }
+
+  /**
+   * Toggle listing visibility between active and paused.
+   * Only the listing owner can toggle their own listings.
+   *
+   * isActive  → controls whether the listing appears in public search results
+   * isPublished → marks that the listing was formally published (never toggled here)
+   */
+  async toggleListingStatus(id: string, userId: string): Promise<BagListing> {
+    const listing = await this.listingRepository.findOne({
+      where: { id, userId },
+    });
+
+    if (!listing) {
+      throw new NotFoundException('Listing not found');
+    }
+
+    listing.isActive = !listing.isActive;
+    return this.listingRepository.save(listing);
+  }
 }

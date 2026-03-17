@@ -8,6 +8,7 @@ import {
   HttpStatus,
   Query,
   UseGuards,
+  Patch,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -94,6 +95,21 @@ export class ListingsController {
       paginationDto,
       paginationDto.status,
     );
+  }
+
+  @ApiBearerAuth('JWT-auth')
+  @Patch(':id/toggle-status')
+  @ApiOperation({ summary: 'Toggle listing active/paused status' })
+  @ApiResponse({
+    status: 200,
+    description: 'Listing status toggled successfully',
+    type: ListingResponseDto,
+  })
+  async toggleListingStatus(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    return this.listingsService.toggleListingStatus(id, user.id);
   }
 
   @ApiBearerAuth('JWT-auth')
