@@ -147,13 +147,9 @@ export class AuthService {
 
     const payload = { sub: userId, type: 'refresh' };
     const token = this.jwtService.sign(payload, { expiresIn: `${days}d` });
-    console.log('[RefreshToken] days:', days);
 
     const expiresAt = new Date();
-    console.log('[RefreshToken] before:', expiresAt.toISOString());
     expiresAt.setDate(expiresAt.getDate() + days);
-    console.log('[RefreshToken] after:', expiresAt.toISOString());
-    console.log('[RefreshToken] days value:', days, typeof days);
     await this.refreshTokenRepository.save(
       this.refreshTokenRepository.create({ token, userId, expiresAt }),
     );
