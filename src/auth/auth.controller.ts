@@ -1,8 +1,18 @@
 import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { CheckEmailDto, RegisterDto, LoginDto } from './dto/auth.dto';
 import { Public } from './decorators/public.decorator';
+
+// ─── DTO para refresh y logout ────────────────────────────────────────────────
+
+import { IsString, IsNotEmpty } from 'class-validator';
+
+class RefreshTokenDto {
+  @IsString()
+  @IsNotEmpty()
+  refreshToken!: string;
+}
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -13,7 +23,6 @@ export class AuthController {
   @Post('check-email')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Check if email exists' })
-  @ApiResponse({ status: 200, description: 'Email check successful' })
   async checkEmail(@Body() checkEmailDto: CheckEmailDto) {
     return this.authService.checkEmail(checkEmailDto);
   }
@@ -22,8 +31,6 @@ export class AuthController {
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register new user' })
-  @ApiResponse({ status: 201, description: 'User registered successfully' })
-  @ApiResponse({ status: 400, description: 'Bad request' })
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
   }
@@ -32,9 +39,22 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login user' })
-  @ApiResponse({ status: 200, description: 'Login successful' })
-  @ApiResponse({ status: 401, description: 'Invalid credentials' })
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
+  }
+
+  @Public()
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Refresh access token' })
+  async refresh(@Body() body: RefreshTokenDto) {
+    return this.authService.refresh(body.refreshToken);
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Logout — revoke refresh token' })
+  async logout(@Body() body: RefreshTokenDto) {
+    return this.authService.logout(body.refreshToken);
   }
 }

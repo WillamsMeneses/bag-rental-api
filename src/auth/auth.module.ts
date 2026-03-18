@@ -9,11 +9,15 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { GoogleAuthController } from './controllers/google-auth.controller';
 import { GoogleAuthService } from './services/google-auth.service';
 import { GoogleStrategy } from './strategies/google.strategy';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { RefreshToken } from './entities/refresh-token.entity';
+import { StringValue } from 'ms';
 
 @Module({
   imports: [
     UsersModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
+    TypeOrmModule.forFeature([RefreshToken]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {
@@ -22,8 +26,9 @@ import { GoogleStrategy } from './strategies/google.strategy';
           throw new Error('JWT_SECRET environment variable is required');
         }
 
-        // Obtener expiresIn como número (segundos) o usar undefined
-        const expiresIn = configService.get<number>('JWT_EXPIRES_IN');
+        const expiresIn = configService.get<string>(
+          'jwt.expiresIn',
+        ) as StringValue;
         return {
           secret: jwtSecret,
           signOptions: expiresIn ? { expiresIn } : undefined,

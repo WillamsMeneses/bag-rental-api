@@ -113,6 +113,22 @@ export class ListingsController {
   }
 
   @ApiBearerAuth('JWT-auth')
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update listing by ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Listing updated successfully',
+    type: ListingResponseDto,
+  })
+  async updateListing(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserData,
+    @Body() updateListingDto: CreateListingDto,
+  ) {
+    return this.listingsService.updateListing(id, user.id, updateListingDto);
+  }
+
+  @ApiBearerAuth('JWT-auth')
   @Get(':id')
   @ApiOperation({ summary: 'Get listing by ID' })
   @ApiResponse({

@@ -38,32 +38,16 @@ export class ListingsService {
     private readonly favoriteRepository: Repository<Favorite>,
   ) {}
 
-  async createListing(
-    userId: string,
-    createListingDto: CreateListingDto,
-  ): Promise<BagListing> {
-    // 1. Crear el listing principal
-    const listing = this.listingRepository.create({
-      userId,
-      title: createListingDto.title,
-      description: createListingDto.description || null,
-      pricePerDay: createListingDto.pricePerDay,
-      gender: createListingDto.gender,
-      hand: createListingDto.hand,
-      street: createListingDto.street || null,
-      zipCode: createListingDto.zipCode || null,
-      state: createListingDto.state || null,
-      city: createListingDto.city || null,
-      photos: createListingDto.photos || [],
-      isPublished: true,
-    });
+  // ─── Private helper: create clubs with their details ──────────────────────
+  // Extracted to avoid duplication between createListing and updateListing.
 
-    const savedListing = await this.listingRepository.save(listing);
-
-    // 2. Crear los clubs con sus detalles
-    for (const [index, clubDto] of createListingDto.clubs.entries()) {
+  private async createClubsForListing(
+    listingId: string,
+    clubs: CreateListingDto['clubs'],
+  ): Promise<void> {
+    for (const [index, clubDto] of clubs.entries()) {
       const club = this.clubRepository.create({
-        bagListingId: savedListing.id,
+        bagListingId: listingId,
         category: clubDto.category,
         brand: clubDto.brand,
         model: clubDto.model,
@@ -75,67 +59,74 @@ export class ListingsService {
 
       const savedClub = await this.clubRepository.save(club);
 
-      // Crear detalles específicos según categoría
       switch (clubDto.category) {
         case ClubCategory.WOOD:
           if (clubDto.woodDetail) {
-            const woodDetail = this.woodDetailRepository.create({
-              clubId: savedClub.id,
-              woodType: clubDto.woodDetail.woodType,
-              quantity: clubDto.woodDetail.quantity || 1,
-            });
-            await this.woodDetailRepository.save(woodDetail);
+            await this.woodDetailRepository.save(
+              this.woodDetailRepository.create({
+                clubId: savedClub.id,
+                woodType: clubDto.woodDetail.woodType,
+                quantity: clubDto.woodDetail.quantity || 1,
+              }),
+            );
           }
           break;
 
         case ClubCategory.HYBRID_RESCUE:
           if (clubDto.hybridDetail) {
-            const hybridDetail = this.hybridDetailRepository.create({
-              clubId: savedClub.id,
-              hybridNumber: clubDto.hybridDetail.hybridNumber,
-              quantity: clubDto.hybridDetail.quantity || 1,
-            });
-            await this.hybridDetailRepository.save(hybridDetail);
+            await this.hybridDetailRepository.save(
+              this.hybridDetailRepository.create({
+                clubId: savedClub.id,
+                hybridNumber: clubDto.hybridDetail.hybridNumber,
+                quantity: clubDto.hybridDetail.quantity || 1,
+              }),
+            );
           }
           break;
 
         case ClubCategory.IRON:
           if (clubDto.ironDetail) {
-            const ironDetail = this.ironDetailRepository.create({
-              clubId: savedClub.id,
-              ironNumber: clubDto.ironDetail.ironNumber,
-              quantity: clubDto.ironDetail.quantity || 1,
-            });
-            await this.ironDetailRepository.save(ironDetail);
+            await this.ironDetailRepository.save(
+              this.ironDetailRepository.create({
+                clubId: savedClub.id,
+                ironNumber: clubDto.ironDetail.ironNumber,
+                quantity: clubDto.ironDetail.quantity || 1,
+              }),
+            );
           }
           break;
 
         case ClubCategory.WEDGE:
           if (clubDto.wedgeDetail) {
-            const wedgeDetail = this.wedgeDetailRepository.create({
-              clubId: savedClub.id,
-              wedgeType: clubDto.wedgeDetail.wedgeType,
-              quantity: clubDto.wedgeDetail.quantity || 1,
-            });
-            await this.wedgeDetailRepository.save(wedgeDetail);
+            await this.wedgeDetailRepository.save(
+              this.wedgeDetailRepository.create({
+                clubId: savedClub.id,
+                wedgeType: clubDto.wedgeDetail.wedgeType,
+                quantity: clubDto.wedgeDetail.quantity || 1,
+              }),
+            );
           }
           break;
 
         case ClubCategory.PUTTER:
           if (clubDto.putterDetail) {
-            const putterDetail = this.putterDetailRepository.create({
-              clubId: savedClub.id,
-              putterType: clubDto.putterDetail.putterType,
-            });
-            await this.putterDetailRepository.save(putterDetail);
+            await this.putterDetailRepository.save(
+              this.putterDetailRepository.create({
+                clubId: savedClub.id,
+                putterType: clubDto.putterDetail.putterType,
+              }),
+            );
           }
           break;
       }
     }
+  }
 
-    // 3. Retornar el listing completo con todas las relaciones
-    const completeListing = await this.listingRepository.findOne({
-      where: { id: savedListing.id },
+  // ─── Private helper: fetch listing with all club relations ────────────────
+
+  private async findListingWithRelations(id: string): Promise<BagListing> {
+    const listing = await this.listingRepository.findOne({
+      where: { id },
       relations: [
         'clubs',
         'clubs.woodDetail',
@@ -146,12 +137,81 @@ export class ListingsService {
       ],
     });
 
-    if (!completeListing) {
-      throw new NotFoundException('Listing not found after creation');
+    if (!listing) {
+      throw new NotFoundException('Listing not found');
     }
 
-    return completeListing;
+    return listing;
   }
+
+  // ─── Create ───────────────────────────────────────────────────────────────
+
+  async createListing(
+    userId: string,
+    dto: CreateListingDto,
+  ): Promise<BagListing> {
+    const listing = this.listingRepository.create({
+      userId,
+      title: dto.title,
+      description: dto.description || null,
+      pricePerDay: dto.pricePerDay,
+      gender: dto.gender,
+      hand: dto.hand,
+      street: dto.street || null,
+      zipCode: dto.zipCode || null,
+      state: dto.state || null,
+      city: dto.city || null,
+      photos: dto.photos || [],
+      isPublished: true,
+    });
+
+    const savedListing = await this.listingRepository.save(listing);
+    await this.createClubsForListing(savedListing.id, dto.clubs);
+    return this.findListingWithRelations(savedListing.id);
+  }
+
+  // ─── Update ───────────────────────────────────────────────────────────────
+  // Clubs are deleted and recreated on every update — safe because rentals
+  // reference the listing (listing_id), not individual clubs (no club_id FK).
+
+  async updateListing(
+    id: string,
+    userId: string,
+    dto: CreateListingDto,
+  ): Promise<BagListing> {
+    const listing = await this.listingRepository.findOne({
+      where: { id, userId },
+    });
+
+    if (!listing) {
+      throw new NotFoundException('Listing not found');
+    }
+
+    // Update listing fields — userId and isPublished are intentionally excluded
+    Object.assign(listing, {
+      title: dto.title,
+      description: dto.description || null,
+      pricePerDay: dto.pricePerDay,
+      gender: dto.gender,
+      hand: dto.hand,
+      street: dto.street || null,
+      zipCode: dto.zipCode || null,
+      state: dto.state || null,
+      city: dto.city || null,
+      photos: dto.photos || [],
+    });
+
+    await this.listingRepository.save(listing);
+
+    // Delete all existing clubs (cascade deletes their details via FK)
+    // then recreate from the new DTO
+    await this.clubRepository.delete({ bagListingId: id });
+    await this.createClubsForListing(id, dto.clubs);
+
+    return this.findListingWithRelations(id);
+  }
+
+  // ─── Find user listings ───────────────────────────────────────────────────
 
   async findUserListings(
     userId: string,
@@ -201,30 +261,14 @@ export class ListingsService {
     return createPaginatedResponse(listings, total, page, limit);
   }
 
-  /**
-   * Find listing by ID with isFavorite
-   */
+  // ─── Find by ID ───────────────────────────────────────────────────────────
+
   async findById(
     id: string,
     userId?: string,
   ): Promise<BagListing & { isFavorite: boolean }> {
-    const listing = await this.listingRepository.findOne({
-      where: { id },
-      relations: [
-        'clubs',
-        'clubs.woodDetail',
-        'clubs.hybridDetail',
-        'clubs.ironDetail',
-        'clubs.wedgeDetail',
-        'clubs.putterDetail',
-      ],
-    });
+    const listing = await this.findListingWithRelations(id);
 
-    if (!listing) {
-      throw new NotFoundException('Listing not found');
-    }
-
-    // Check if favorited
     let isFavorite = false;
     if (userId) {
       const favorite = await this.favoriteRepository.findOne({
@@ -233,15 +277,11 @@ export class ListingsService {
       isFavorite = !!favorite;
     }
 
-    return {
-      ...listing,
-      isFavorite,
-    };
+    return { ...listing, isFavorite };
   }
 
-  /**
-   * Get all published listings with pagination and optional isFavorite
-   */
+  // ─── Find all published ───────────────────────────────────────────────────
+
   async findAllPublished(
     paginationDto: PaginationDto,
     userId?: string,
@@ -249,7 +289,6 @@ export class ListingsService {
     const { page = 1, limit = 10 } = paginationDto;
     const skip = (page - 1) * limit;
 
-    // Get listings with pagination
     const [listings, total] = await this.listingRepository.findAndCount({
       where: { isPublished: true, isActive: true },
       relations: ['clubs'],
@@ -258,7 +297,6 @@ export class ListingsService {
       skip,
     });
 
-    // Get favorite IDs if user is logged in
     let favoriteIds: Set<string> = new Set();
     if (userId) {
       const favorites = await this.favoriteRepository.find({
@@ -268,7 +306,6 @@ export class ListingsService {
       favoriteIds = new Set(favorites.map((f) => f.listingId));
     }
 
-    // Add isFavorite field to each listing
     const listingsWithFavorite = listings.map((listing) => ({
       ...listing,
       isFavorite: favoriteIds.has(listing.id),
@@ -277,13 +314,10 @@ export class ListingsService {
     return createPaginatedResponse(listingsWithFavorite, total, page, limit);
   }
 
-  /**
-   * Toggle listing visibility between active and paused.
-   * Only the listing owner can toggle their own listings.
-   *
-   * isActive  → controls whether the listing appears in public search results
-   * isPublished → marks that the listing was formally published (never toggled here)
-   */
+  // ─── Toggle status ────────────────────────────────────────────────────────
+  // isActive  → controls whether the listing appears in public search results
+  // isPublished → marks that the listing was formally published (never toggled here)
+
   async toggleListingStatus(id: string, userId: string): Promise<BagListing> {
     const listing = await this.listingRepository.findOne({
       where: { id, userId },

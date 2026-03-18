@@ -45,7 +45,8 @@ export class GoogleAuthController {
     try {
       const result = await this.googleAuthService.validateGoogleUser(req.user);
       const frontendUrl = this.configService.get<string>('FRONTEND_URL') || '';
-      const callbackUrl = `${frontendUrl}/auth/callback?token=${result.accessToken}`;
+      const callbackUrl = `${frontendUrl}/auth/callback?token=${result.accessToken}&refreshToken=${result.refreshToken}`;
+
       return res.redirect(HttpStatus.FOUND, callbackUrl);
     } catch (error) {
       const frontendUrl = this.configService.get<string>('FRONTEND_URL') || '';
