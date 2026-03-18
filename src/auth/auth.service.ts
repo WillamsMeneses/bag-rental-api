@@ -134,26 +134,28 @@ export class AuthService {
 
   // ─── Private helpers ───────────────────────────────────────────────────────
 
-  private generateAccessToken(userId: string, email: string): string {
+  public generateAccessToken(userId: string, email: string): string {
     const payload = { sub: userId, email };
     return this.jwtService.sign(payload);
     // Expiration is set in JwtModule config (e.g. 15m)
   }
 
-  private async generateRefreshToken(userId: string): Promise<string> {
-    // Refresh token is also a JWT but with longer expiration
+  public async generateRefreshToken(userId: string): Promise<string> {
+    const days = Number(
+      this.configService.get<number>('REFRESH_TOKEN_EXPIRES_DAYS') ?? 30,
+    );
+
     const payload = { sub: userId, type: 'refresh' };
-    const token = this.jwtService.sign(payload, { expiresIn: '30d' });
+    const token = this.jwtService.sign(payload, { expiresIn: `${days}d` });
+    console.log('[RefreshToken] days:', days);
 
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30);
-
+    console.log('[RefreshToken] before:', expiresAt.toISOString());
+    expiresAt.setDate(expiresAt.getDate() + days);
+    console.log('[RefreshToken] after:', expiresAt.toISOString());
+    console.log('[RefreshToken] days value:', days, typeof days);
     await this.refreshTokenRepository.save(
-      this.refreshTokenRepository.create({
-        token,
-        userId,
-        expiresAt,
-      }),
+      this.refreshTokenRepository.create({ token, userId, expiresAt }),
     );
 
     return token;
