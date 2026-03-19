@@ -132,7 +132,7 @@ export class AuthService {
     );
   }
 
-  // ─── Private helpers ───────────────────────────────────────────────────────
+  // ─── Public helpers ───────────────────────────────────────────────────────
 
   public generateAccessToken(userId: string, email: string): string {
     const payload = { sub: userId, email };
