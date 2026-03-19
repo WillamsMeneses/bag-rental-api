@@ -7,12 +7,16 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { AuthProvider, User } from './entities/user.entity';
+import { StripeService } from 'src/stripe/stripe.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly stripeService: StripeService,
+    private readonly configService: ConfigService,
   ) {}
 
   async findByEmail(email: string): Promise<User | null> {
@@ -75,5 +79,37 @@ export class UsersService {
     }
 
     return user;
+  }
+
+  async getStripeOnboardingLink(userId: string): Promise<{ url: string }> {
+    const user = await this.findById(userId);
+
+    // Si no tiene cuenta Stripe, crearla
+    if (!user.stripeAccountId) {
+      const account = await this.stripeService.createConnectAccount(user.email);
+      user.stripeAccountId = account.id;
+      await this.userRepository.save(user);
+    }
+
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
+
+    const accountLink = await this.stripeService.createAccountLink(
+      user.stripeAccountId,
+      `${frontendUrl}/stripe/refresh`, // si algo falla, vuelve acá
+      `${frontendUrl}/stripe/return`, // cuando termina el onboarding
+    );
+
+    return { url: accountLink.url };
+  }
+
+  async getStripeStatus(
+    userId: string,
+  ): Promise<{ isConnected: boolean; stripeAccountId: string | null }> {
+    const user = await this.findById(userId);
+    return {
+      isConnected: !!user.stripeAccountId,
+      stripeAccountId: user.stripeAccountId,
+    };
   }
 }

@@ -16,6 +16,9 @@ import {
   createPaginatedResponse,
   PaginatedResponse,
 } from 'src/common/interfaces/paginated-response.interface';
+import Stripe from 'stripe';
+import { StripeService } from 'src/stripe/stripe.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class RentalsService {
@@ -24,6 +27,8 @@ export class RentalsService {
     private readonly rentalRepository: Repository<Rental>,
     @InjectRepository(BagListing)
     private readonly listingRepository: Repository<BagListing>,
+    private readonly stripeService: StripeService,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -369,5 +374,80 @@ export class RentalsService {
       .where('status = :status', { status: RentalStatus.PENDING_PAYMENT })
       .andWhere('expires_at < :now', { now })
       .execute();
+  }
+
+  // Nuevo método — crear PaymentIntent
+  async createPaymentIntent(
+    rentalId: string,
+    userId: string,
+  ): Promise<{ clientSecret: string; paymentIntentId: string }> {
+    const rental = await this.rentalRepository.findOne({
+      where: { id: rentalId },
+      relations: ['listing', 'listing.user'],
+    });
+
+    if (!rental) throw new NotFoundException('Rental not found');
+    if (rental.renterId !== userId)
+      throw new ForbiddenException('Not authorized');
+    if (rental.status !== RentalStatus.PENDING_PAYMENT) {
+      throw new BadRequestException('Rental is not pending payment');
+    }
+
+    const owner = rental.listing.user; // necesitamos stripeAccountId del owner
+    if (!owner?.stripeAccountId) {
+      throw new BadRequestException(
+        'Owner has not completed Stripe onboarding',
+      );
+    }
+
+    const platformFeePercent =
+      this.configService.get<number>('STRIPE_PLATFORM_FEE_PERCENT') ?? 10;
+    const amountInCents = Math.round(Number(rental.totalAmount) * 100);
+
+    const paymentIntent = await this.stripeService.createPaymentIntent({
+      amount: amountInCents,
+      currency: 'usd',
+      ownerStripeAccountId: owner.stripeAccountId,
+      rentalId: rental.id,
+      platformFeePercent,
+    });
+
+    return {
+      clientSecret: paymentIntent.client_secret!,
+      paymentIntentId: paymentIntent.id,
+    };
+  }
+
+  // Nuevo método — manejar webhook de Stripe
+  async handleStripeWebhook(payload: Buffer, signature: string): Promise<void> {
+    let event: Stripe.Event;
+
+    try {
+      event = this.stripeService.constructWebhookEvent(payload, signature);
+    } catch {
+      throw new BadRequestException('Invalid webhook signature');
+    }
+
+    switch (event.type) {
+      case 'payment_intent.succeeded': {
+        const paymentIntent = event.data.object;
+        const rentalId = paymentIntent.metadata?.rentalId;
+        if (rentalId) {
+          await this.confirmPayment(rentalId, paymentIntent.id);
+        }
+        break;
+      }
+      case 'payment_intent.payment_failed': {
+        const paymentIntent = event.data.object;
+        const rentalId = paymentIntent.metadata?.rentalId;
+        if (rentalId) {
+          await this.rentalRepository.update(
+            { id: rentalId },
+            { status: RentalStatus.EXPIRED },
+          );
+        }
+        break;
+      }
+    }
   }
 }

@@ -4,7 +4,7 @@ import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { rawBody: true });
 
   app.enableCors({
     //TODO: Si queremos que funcione con cualquier puerto hay que agregar esto(/\.localhost\./): origin: ['http://localhost:5173', /\.localhost\./]

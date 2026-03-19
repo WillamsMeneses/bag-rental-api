@@ -53,4 +53,12 @@ export class User {
 
   @UpdateDateColumn()
   updatedAt!: Date;
+
+  @Column({
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+    name: 'stripe_account_id',
+  })
+  stripeAccountId!: string | null;
 }

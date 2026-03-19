@@ -8,7 +8,10 @@ import {
   HttpStatus,
   Patch,
   Query,
+  Req,
+  Headers,
 } from '@nestjs/common';
+import type { RawBodyRequest } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -25,6 +28,7 @@ import {
   CurrentUserData,
 } from '../common/decorators/current-user.decorator';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { Request } from 'express';
 
 @ApiTags('Rentals')
 @ApiBearerAuth('JWT-auth')
@@ -113,6 +117,29 @@ export class RentalsController {
   async getBlockedDates(@Param('listingId') listingId: string) {
     const dates = await this.rentalsService.getBlockedDates(listingId);
     return { blockedDates: dates };
+  }
+
+  // Nuevo endpoint — crear PaymentIntent
+  @Post(':id/create-payment-intent')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Create Stripe PaymentIntent for rental' })
+  async createPaymentIntent(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    return this.rentalsService.createPaymentIntent(id, user.id);
+  }
+
+  // Nuevo endpoint — webhook de Stripe (sin auth)
+  @Post('webhook')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Stripe webhook handler' })
+  async stripeWebhook(
+    @Req() req: RawBodyRequest<Request>,
+    @Headers('stripe-signature') signature: string,
+  ) {
+    await this.rentalsService.handleStripeWebhook(req.rawBody!, signature);
+    return { received: true };
   }
 
   @Get(':id')
