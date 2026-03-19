@@ -128,7 +128,8 @@ export class ListingsController {
     return this.listingsService.updateListing(id, user.id, updateListingDto);
   }
 
-  @ApiBearerAuth('JWT-auth')
+  @Public()
+  @UseGuards(OptionalJwtAuthGuard)
   @Get(':id')
   @ApiOperation({ summary: 'Get listing by ID' })
   @ApiResponse({
@@ -138,8 +139,8 @@ export class ListingsController {
   })
   async getListingById(
     @Param('id') id: string,
-    @CurrentUser() user: CurrentUserData,
+    @OptionalUser() user: OptionalUserData | null,
   ) {
-    return this.listingsService.findById(id, user.id);
+    return this.listingsService.findById(id, user?.id);
   }
 }
