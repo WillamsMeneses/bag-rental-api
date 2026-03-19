@@ -113,7 +113,7 @@ export class ListingsService {
             await this.putterDetailRepository.save(
               this.putterDetailRepository.create({
                 clubId: savedClub.id,
-                putterType: clubDto.putterDetail.putterType,
+                putterTypes: clubDto.putterDetail.putterTypes,
               }),
             );
           }

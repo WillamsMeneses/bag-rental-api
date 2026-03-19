@@ -11,15 +11,6 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-// import {
-//   UserGender,
-//   HandType,
-// } from '../entities/bag-listing.entity';
-// import {
-//   ClubCategory,
-//   ClubFlex,
-//   ShaftType,
-// } from '../entities/club.entity';
 import { HandType, UserGender } from '../entities/bag-listing.entity';
 import { ClubCategory, ClubFlex, ShaftType } from '../entities/club.entity';
 
@@ -77,10 +68,11 @@ class ClubWedgeDetailDto {
 }
 
 class ClubPutterDetailDto {
-  @ApiProperty({ example: 'blade' })
-  @IsString()
-  @IsNotEmpty()
-  putterType!: string;
+  @ApiProperty({ example: ['blade', 'mallet'], type: [String] })
+  @IsArray()
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
+  putterTypes!: string[];
 }
 
 // DTO principal para un club

@@ -20,8 +20,9 @@ export class ClubPutterDetail {
   @JoinColumn({ name: 'club_id' })
   club!: Club;
 
-  @Column({ type: 'varchar', length: 30, name: 'putter_type' })
-  putterType!: string;
+  // Ahora soporta múltiples tipos — e.g. ['blade', 'mallet']
+  @Column({ type: 'text', array: true, name: 'putter_types', default: '{}' })
+  putterTypes!: string[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
