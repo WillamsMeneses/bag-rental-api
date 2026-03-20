@@ -19,7 +19,7 @@ import { RentalsModule } from './rentals/rentals.module';
 
 @Module({
   imports: [
-    //TODO: Revisar porque esta comentado pero lo mas probable es para desactivar el cron de expiracion de rentals
+    //TODO: esto se comenta porque realiza muchas consultas a BD pero en caso de probar rentas se activa
     // ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,

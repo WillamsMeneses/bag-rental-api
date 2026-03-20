@@ -129,7 +129,7 @@ export class RentalsService {
     // 5. Crear rental con estado pending_payment
     // Expira en 15 minutos
     const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + 15);
+    expiresAt.setMinutes(expiresAt.getMinutes() + 5);
 
     const rental = this.rentalRepository.create({
       listingId: createRentalDto.listingId,
@@ -376,7 +376,6 @@ export class RentalsService {
       .execute();
   }
 
-  // Nuevo método — crear PaymentIntent
   async createPaymentIntent(
     rentalId: string,
     userId: string,
@@ -418,7 +417,47 @@ export class RentalsService {
     };
   }
 
-  // Nuevo método — manejar webhook de Stripe
+  async createCheckoutSession(
+    rentalId: string,
+    userId: string,
+  ): Promise<{ url: string }> {
+    const rental = await this.rentalRepository.findOne({
+      where: { id: rentalId },
+      relations: ['listing', 'listing.user'],
+    });
+
+    if (!rental) throw new NotFoundException('Rental not found');
+    if (rental.renterId !== userId)
+      throw new ForbiddenException('Not authorized');
+    if (rental.status !== RentalStatus.PENDING_PAYMENT) {
+      throw new BadRequestException('Rental is not pending payment');
+    }
+
+    const owner = rental.listing.user;
+    if (!owner?.stripeAccountId) {
+      throw new BadRequestException(
+        'Owner has not completed Stripe onboarding',
+      );
+    }
+
+    const platformFeePercent =
+      this.configService.get<number>('STRIPE_PLATFORM_FEE_PERCENT') ?? 10;
+    const amountInCents = Math.round(Number(rental.totalAmount) * 100);
+    const platformFee = Math.round(amountInCents * (platformFeePercent / 100));
+
+    const session = await this.stripeService.createCheckoutSession({
+      amount: amountInCents,
+      currency: 'usd',
+      ownerStripeAccountId: owner.stripeAccountId,
+      rentalId: rental.id,
+      platformFee,
+      successUrl: `${this.configService.get('FRONTEND_URL')}/payment-return?rentalId=${rental.id}&session_id={CHECKOUT_SESSION_ID}`,
+      cancelUrl: `${this.configService.get('FRONTEND_URL')}/listings/${rental.listingId}?paymentCancelled=true`,
+    });
+
+    return { url: session.url! };
+  }
+
   async handleStripeWebhook(payload: Buffer, signature: string): Promise<void> {
     let event: Stripe.Event;
 

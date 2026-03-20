@@ -29,6 +29,7 @@ import {
 } from '../common/decorators/current-user.decorator';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { Request } from 'express';
+import { Public } from 'src/auth/decorators/public.decorator';
 
 @ApiTags('Rentals')
 @ApiBearerAuth('JWT-auth')
@@ -119,7 +120,6 @@ export class RentalsController {
     return { blockedDates: dates };
   }
 
-  // Nuevo endpoint — crear PaymentIntent
   @Post(':id/create-payment-intent')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Create Stripe PaymentIntent for rental' })
@@ -130,8 +130,8 @@ export class RentalsController {
     return this.rentalsService.createPaymentIntent(id, user.id);
   }
 
-  // Nuevo endpoint — webhook de Stripe (sin auth)
   @Post('webhook')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Stripe webhook handler' })
   async stripeWebhook(
@@ -140,6 +140,15 @@ export class RentalsController {
   ) {
     await this.rentalsService.handleStripeWebhook(req.rawBody!, signature);
     return { received: true };
+  }
+
+  @Post(':id/create-checkout-session')
+  @HttpCode(HttpStatus.OK)
+  async createCheckoutSession(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    return this.rentalsService.createCheckoutSession(id, user.id);
   }
 
   @Get(':id')

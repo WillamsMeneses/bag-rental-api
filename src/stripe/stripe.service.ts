@@ -34,6 +34,37 @@ export class StripeService {
     });
   }
 
+  async createCheckoutSession(params: {
+    amount: number;
+    currency: string;
+    ownerStripeAccountId: string;
+    rentalId: string;
+    platformFee: number;
+    successUrl: string;
+    cancelUrl: string;
+  }): Promise<Stripe.Checkout.Session> {
+    return this.stripe.checkout.sessions.create({
+      mode: 'payment',
+      line_items: [
+        {
+          price_data: {
+            currency: params.currency,
+            product_data: { name: 'Bag Rental' },
+            unit_amount: params.amount,
+          },
+          quantity: 1,
+        },
+      ],
+      payment_intent_data: {
+        transfer_data: { destination: params.ownerStripeAccountId },
+        application_fee_amount: params.platformFee,
+        metadata: { rentalId: params.rentalId },
+      },
+      success_url: params.successUrl,
+      cancel_url: params.cancelUrl,
+    });
+  }
+
   // Construir evento del webhook
   constructWebhookEvent(payload: Buffer, signature: string): Stripe.Event {
     const webhookSecret = this.configService.get<string>(
