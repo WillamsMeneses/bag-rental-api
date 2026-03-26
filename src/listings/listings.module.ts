@@ -10,6 +10,7 @@ import { ClubIronDetail } from './entities/club-iron-detail.entity';
 import { ClubWedgeDetail } from './entities/club-wedge-detail.entity';
 import { ClubPutterDetail } from './entities/club-putter-detail.entity';
 import { Favorite } from '../favorites/entities/favorite.entity';
+import { CloudinaryModule } from 'src/cloudinary/cloudinary.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { Favorite } from '../favorites/entities/favorite.entity';
       ClubPutterDetail,
       Favorite,
     ]),
+    CloudinaryModule,
   ],
   controllers: [ListingsController],
   providers: [ListingsService],

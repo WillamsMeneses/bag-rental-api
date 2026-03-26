@@ -16,6 +16,7 @@ import { ListingsModule } from './listings/listings.module';
 import { FavoritesModule } from './favorites/favorites.module';
 // import { ScheduleModule } from '@nestjs/schedule';
 import { RentalsModule } from './rentals/rentals.module';
+import { CloudinaryModule } from './cloudinary/cloudinary.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { RentalsModule } from './rentals/rentals.module';
     ListingsModule,
     FavoritesModule,
     RentalsModule,
+    CloudinaryModule,
   ],
   providers: [
     {
