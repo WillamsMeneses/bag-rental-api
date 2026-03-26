@@ -176,43 +176,6 @@ export class ListingsService {
   // Clubs are deleted and recreated on every update — safe because rentals
   // reference the listing (listing_id), not individual clubs (no club_id FK).
 
-  // async updateListing(
-  //   id: string,
-  //   userId: string,
-  //   dto: CreateListingDto,
-  // ): Promise<BagListing> {
-  //   const listing = await this.listingRepository.findOne({
-  //     where: { id, userId },
-  //   });
-
-  //   if (!listing) {
-  //     throw new NotFoundException('Listing not found');
-  //   }
-
-  //   // Update listing fields — userId and isPublished are intentionally excluded
-  //   Object.assign(listing, {
-  //     title: dto.title,
-  //     description: dto.description || null,
-  //     pricePerDay: dto.pricePerDay,
-  //     gender: dto.gender,
-  //     hand: dto.hand,
-  //     street: dto.street || null,
-  //     zipCode: dto.zipCode || null,
-  //     state: dto.state || null,
-  //     city: dto.city || null,
-  //     photos: dto.photos || [],
-  //   });
-
-  //   await this.listingRepository.save(listing);
-
-  //   // Delete all existing clubs (cascade deletes their details via FK)
-  //   // then recreate from the new DTO
-  //   await this.clubRepository.delete({ bagListingId: id });
-  //   await this.createClubsForListing(id, dto.clubs);
-
-  //   return this.findListingWithRelations(id);
-  // }
-
   async updateListing(
     id: string,
     userId: string,
