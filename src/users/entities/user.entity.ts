@@ -61,4 +61,49 @@ export class User {
     name: 'stripe_account_id',
   })
   stripeAccountId!: string | null;
+
+  @Column({
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+    name: 'first_name',
+  })
+  firstName!: string | null;
+
+  @Column({
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+    name: 'last_name',
+  })
+  lastName!: string | null;
+
+  @Column({
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+  })
+  birthday!: string | null;
+
+  @Column({
+    type: 'varchar',
+    length: 30,
+    nullable: true,
+  })
+  phone!: string | null;
+
+  @Column({
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
+  country!: string | null;
+
+  @Column({
+    type: 'varchar',
+    length: 500,
+    nullable: true,
+    name: 'avatar_url',
+  })
+  avatarUrl!: string | null;
 }

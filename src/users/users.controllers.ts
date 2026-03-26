@@ -1,10 +1,11 @@
-import { Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import {
   CurrentUser,
   CurrentUserData,
 } from '../common/decorators/current-user.decorator';
 import { UsersService } from './users.service';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @ApiTags('Users')
 @ApiBearerAuth('JWT-auth')
@@ -14,12 +15,17 @@ export class UsersController {
 
   @Get('me')
   @ApiOperation({ summary: 'Get current user profile' })
-  getCurrentUser(@CurrentUser() user: CurrentUserData) {
-    return {
-      id: user.id,
-      email: user.email,
-      authProvider: user.authProvider,
-    };
+  async getCurrentUser(@CurrentUser() user: CurrentUserData) {
+    return this.usersService.getProfile(user.id);
+  }
+
+  @Patch('me')
+  @ApiOperation({ summary: 'Update current user profile' })
+  async updateProfile(
+    @CurrentUser() user: CurrentUserData,
+    @Body() dto: UpdateProfileDto,
+  ) {
+    return this.usersService.updateProfile(user.id, dto);
   }
 
   @Post('stripe/onboarding')

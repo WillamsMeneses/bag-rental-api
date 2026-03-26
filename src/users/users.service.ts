@@ -9,6 +9,7 @@ import * as bcrypt from 'bcrypt';
 import { AuthProvider, User } from './entities/user.entity';
 import { StripeService } from 'src/stripe/stripe.service';
 import { ConfigService } from '@nestjs/config';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Injectable()
 export class UsersService {
@@ -111,5 +112,37 @@ export class UsersService {
       isConnected: !!user.stripeAccountId,
       stripeAccountId: user.stripeAccountId,
     };
+  }
+
+  async getProfile(userId: string) {
+    const user = await this.findById(userId);
+    return {
+      id: user.id,
+      email: user.email,
+      authProvider: user.authProvider,
+      firstName: user.firstName ?? null,
+      lastName: user.lastName ?? null,
+      birthday: user.birthday ?? null,
+      phone: user.phone ?? null,
+      country: user.country ?? null,
+      avatarUrl: user.avatarUrl ?? null,
+      stripeAccountId: user.stripeAccountId ?? null,
+      emailVerified: user.emailVerified,
+      createdAt: user.createdAt,
+    };
+  }
+
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    const user = await this.findById(userId);
+
+    if (dto.firstName !== undefined) user.firstName = dto.firstName;
+    if (dto.lastName !== undefined) user.lastName = dto.lastName;
+    if (dto.birthday !== undefined) user.birthday = dto.birthday;
+    if (dto.phone !== undefined) user.phone = dto.phone;
+    if (dto.country !== undefined) user.country = dto.country;
+    if (dto.avatarUrl !== undefined) user.avatarUrl = dto.avatarUrl;
+
+    await this.userRepository.save(user);
+    return this.getProfile(userId);
   }
 }
