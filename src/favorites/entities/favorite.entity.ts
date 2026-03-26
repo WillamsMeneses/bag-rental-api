@@ -5,11 +5,13 @@ import {
   CreateDateColumn,
   ManyToOne,
   JoinColumn,
+  Unique,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { BagListing } from '../../listings/entities/bag-listing.entity';
 
 @Entity('favorites')
+@Unique(['userId', 'listingId'])
 export class Favorite {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
