@@ -5,7 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, Not } from 'typeorm';
 import { Rental, RentalStatus } from './entities/rental.entity';
 import { BagListing } from '../listings/entities/bag-listing.entity';
 import { CreateRentalDto } from './dto/create-rental.dto';
@@ -148,8 +148,7 @@ export class RentalsService {
   }
 
   /**
-   * Confirm payment (called after successful payment)
-   * Por ahora es un mock, en el futuro se llamará desde Stripe webhook
+   * Confirm payment - called from Stripe webhook on payment_intent.succeeded
    */
   async confirmPayment(
     rentalId: string,
@@ -174,6 +173,34 @@ export class RentalsService {
     rental.expiresAt = null;
 
     return this.rentalRepository.save(rental);
+  }
+
+  /**
+   * Transition CONFIRMED rentals to ACTIVE when start date is reached
+   */
+  async activateConfirmedRentals(): Promise<void> {
+    const today = new Date().toISOString().split('T')[0];
+    await this.rentalRepository
+      .createQueryBuilder()
+      .update(Rental)
+      .set({ status: RentalStatus.ACTIVE })
+      .where('status = :status', { status: RentalStatus.CONFIRMED })
+      .andWhere('start_date <= :today', { today })
+      .execute();
+  }
+
+  /**
+   * Transition ACTIVE rentals to COMPLETED when end date has passed
+   */
+  async completeActiveRentals(): Promise<void> {
+    const today = new Date().toISOString().split('T')[0];
+    await this.rentalRepository
+      .createQueryBuilder()
+      .update(Rental)
+      .set({ status: RentalStatus.COMPLETED })
+      .where('status = :status', { status: RentalStatus.ACTIVE })
+      .andWhere('end_date < :today', { today })
+      .execute();
   }
 
   /**
@@ -273,7 +300,7 @@ export class RentalsService {
     const skip = (page - 1) * limit;
 
     const [rentals, total] = await this.rentalRepository.findAndCount({
-      where: { renterId: userId },
+      where: { renterId: userId, status: Not(RentalStatus.EXPIRED) },
       relations: ['listing', 'owner'],
       order: { createdAt: 'DESC' },
       take: limit,
@@ -294,7 +321,7 @@ export class RentalsService {
     const skip = (page - 1) * limit;
 
     const [rentals, total] = await this.rentalRepository.findAndCount({
-      where: { ownerId: userId },
+      where: { ownerId: userId, status: Not(RentalStatus.EXPIRED) },
       relations: ['listing', 'renter'],
       order: { createdAt: 'DESC' },
       take: limit,
@@ -362,7 +389,7 @@ export class RentalsService {
   }
 
   /**
-   * Expire pending payments (cron job)
+   * Expire PENDING_PAYMENT rentals that have passed their payment window
    */
   async expirePendingPayments(): Promise<void> {
     const now = new Date();

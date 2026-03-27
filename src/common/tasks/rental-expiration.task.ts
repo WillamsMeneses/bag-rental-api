@@ -12,13 +12,14 @@ export class RentalExpirationTask {
    * Runs every minute to expire pending payments
    */
   @Cron(CronExpression.EVERY_MINUTE)
-  async handleExpiration() {
-    this.logger.debug('Checking for expired rentals...');
+  async handleRentalStatuses() {
+    this.logger.debug('Updating rental statuses...');
     try {
       await this.rentalsService.expirePendingPayments();
-      this.logger.debug('Expired rentals processed');
+      await this.rentalsService.activateConfirmedRentals();
+      await this.rentalsService.completeActiveRentals();
     } catch (error) {
-      this.logger.error('Error expiring rentals:', error);
+      this.logger.error('Error updating rental statuses:', error);
     }
   }
 }
