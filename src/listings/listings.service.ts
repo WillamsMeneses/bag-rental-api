@@ -15,7 +15,10 @@ import {
   PaginatedResponse,
 } from 'src/common/interfaces/paginated-response.interface';
 import { Favorite } from 'src/favorites/entities/favorite.entity';
-import { ListingStatusFilter } from './dto/listing-pagination.dto';
+import {
+  ListingPaginationDto,
+  ListingStatusFilter,
+} from './dto/listing-pagination.dto';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
 
 @Injectable()
@@ -288,19 +291,32 @@ export class ListingsService {
   // ─── Find all published ───────────────────────────────────────────────────
 
   async findAllPublished(
-    paginationDto: PaginationDto,
+    paginationDto: ListingPaginationDto,
     userId?: string,
   ): Promise<PaginatedResponse<BagListing & { isFavorite: boolean }>> {
-    const { page = 1, limit = 10 } = paginationDto;
+    const { page = 1, limit = 10, city, clubCategory } = paginationDto;
     const skip = (page - 1) * limit;
 
-    const [listings, total] = await this.listingRepository.findAndCount({
-      where: { isPublished: true, isActive: true },
-      relations: ['clubs'],
-      order: { createdAt: 'DESC' },
-      take: limit,
-      skip,
-    });
+    const qb = this.listingRepository
+      .createQueryBuilder('listing')
+      .leftJoinAndSelect('listing.clubs', 'clubs')
+      .where('listing.isPublished = true AND listing.isActive = true');
+
+    if (city) {
+      qb.andWhere('LOWER(listing.city) LIKE LOWER(:city)', {
+        city: `%${city}%`,
+      });
+    }
+
+    if (clubCategory) {
+      qb.andWhere('clubs.category = :clubCategory', { clubCategory });
+    }
+
+    const [listings, total] = await qb
+      .orderBy('listing.createdAt', 'DESC')
+      .take(limit)
+      .skip(skip)
+      .getManyAndCount();
 
     let favoriteIds: Set<string> = new Set();
     if (userId) {

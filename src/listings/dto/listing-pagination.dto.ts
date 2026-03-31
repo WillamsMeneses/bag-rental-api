@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsEnum } from 'class-validator';
+import { IsOptional, IsEnum, IsString } from 'class-validator';
 import { PaginationDto } from '../../common/dto/pagination.dto';
+import { ClubCategory } from '../entities/club.entity';
 
 export enum ListingStatusFilter {
   ACTIVE = 'active',
@@ -13,4 +14,14 @@ export class ListingPaginationDto extends PaginationDto {
   @IsOptional()
   @IsEnum(ListingStatusFilter)
   status?: ListingStatusFilter;
+
+  @ApiPropertyOptional({ example: 'Los Angeles' })
+  @IsOptional()
+  @IsString()
+  city?: string;
+
+  @ApiPropertyOptional({ enum: ClubCategory })
+  @IsOptional()
+  @IsEnum(ClubCategory)
+  clubCategory?: ClubCategory;
 }

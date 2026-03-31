@@ -25,7 +25,6 @@ import {
   CurrentUserData,
 } from '../common/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
-import { PaginationDto } from '../common/dto/pagination.dto';
 import { OptionalJwtAuthGuard } from 'src/common/guards/optional-jwt.guard';
 import {
   OptionalUser,
@@ -55,7 +54,7 @@ export class ListingsController {
   @ApiQuery({ name: 'limit', required: false, type: Number })
   async getAllListings(
     @OptionalUser() user: OptionalUserData | null,
-    @Query() paginationDto: PaginationDto,
+    @Query() paginationDto: ListingPaginationDto,
   ) {
     return this.listingsService.findAllPublished(paginationDto, user?.id);
   }
