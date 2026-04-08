@@ -129,7 +129,7 @@ export class RentalsService {
     // 5. Crear rental con estado pending_payment
     // Expira en 15 minutos
     const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + 5);
+    expiresAt.setMinutes(expiresAt.getMinutes() + 15);
 
     const rental = this.rentalRepository.create({
       listingId: createRentalDto.listingId,
