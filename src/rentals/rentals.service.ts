@@ -20,6 +20,7 @@ import Stripe from 'stripe';
 import { StripeService } from 'src/stripe/stripe.service';
 import { ConfigService } from '@nestjs/config';
 import { NotificationsService } from 'src/notifications/notifications.service';
+import { Club } from 'src/listings/entities/club.entity';
 
 @Injectable()
 export class RentalsService {
@@ -362,6 +363,7 @@ export class RentalsService {
       city: string | null;
       state: string | null;
       pricePerDay: number;
+      clubs: Club[];
     };
     renter: {
       id: string;
@@ -369,14 +371,12 @@ export class RentalsService {
       lastName?: string | null;
       email: string;
       avatarUrl: string | null;
-      // city: string | null;
-      // country: string | null;
       location: string | null;
     };
   }> {
     const rental = await this.rentalRepository.findOne({
       where: { id },
-      relations: ['listing', 'renter'],
+      relations: ['listing', 'listing.clubs', 'renter'],
     });
 
     if (!rental) {
@@ -413,6 +413,7 @@ export class RentalsService {
         city: rental.listing.city,
         state: rental.listing.state,
         pricePerDay: Number(rental.listing.pricePerDay),
+        clubs: rental.listing.clubs ?? [],
       },
       renter: {
         id: rental.renter.id,
