@@ -20,7 +20,6 @@ import Stripe from 'stripe';
 import { StripeService } from 'src/stripe/stripe.service';
 import { ConfigService } from '@nestjs/config';
 import { NotificationsService } from 'src/notifications/notifications.service';
-import dayjs from 'dayjs';
 
 @Injectable()
 export class RentalsService {
@@ -339,55 +338,107 @@ export class RentalsService {
   }
 
   /**
-   * Get rental by ID with full details for rental request view
+   * Get rental request detail - complete for owner accept/deny screen
    */
-  async findById(id: string): Promise<
-    Rental & {
-      commissionFee: number;
-      commissionFeePercent: number;
-      totalYouReceive: number;
-      canDeny: boolean;
-      canAccept: boolean;
-      formattedStartDate: string;
-      formattedEndDate: string;
-    }
-  > {
+  async getRentalRequestById(id: string): Promise<{
+    id: string;
+    status: string;
+    startDate: Date;
+    endDate: Date;
+    totalDays: number;
+    totalAmount: number;
+    commissionFee: number;
+    commissionFeePercent: number;
+    totalYouReceive: number;
+    canDeny: boolean;
+    canAccept: boolean;
+    listing: {
+      id: string;
+      title: string;
+      description?: string | null;
+      photos: string[];
+      hand: string;
+      gender: string;
+      city: string | null;
+      state: string | null;
+      pricePerDay: number;
+    };
+    renter: {
+      id: string;
+      firstName?: string | null;
+      lastName?: string | null;
+      email: string;
+      avatarUrl: string | null;
+      // city: string | null;
+      // country: string | null;
+      location: string | null;
+    };
+  }> {
     const rental = await this.rentalRepository.findOne({
       where: { id },
-      relations: ['listing', 'renter', 'owner'],
+      relations: ['listing', 'renter'],
     });
 
     if (!rental) {
-      throw new NotFoundException('Rental not found');
+      throw new NotFoundException('Rental request not found');
     }
 
-    // Obtener porcentaje de comisión del env
     const commissionFeePercent =
       this.configService.get<number>('STRIPE_PLATFORM_FEE_PERCENT') ?? 10;
-
-    // Calcular fees
     const totalAmount = Number(rental.totalAmount);
     const commissionFee = +(totalAmount * (commissionFeePercent / 100)).toFixed(
       2,
     );
     const totalYouReceive = +(totalAmount - commissionFee).toFixed(2);
 
-    // Formatear fechas
-    const formatDate = (dateStr: string | Date): string => {
-      return dayjs(dateStr).format('MM/DD/YYYY');
-    };
-
-    // Devolver rental original con propiedades adicionales
     return {
-      ...rental,
+      id: rental.id,
+      status: rental.status,
+      startDate: rental.startDate,
+      endDate: rental.endDate,
+      totalDays: rental.totalDays,
+      totalAmount,
       commissionFee,
       commissionFeePercent,
       totalYouReceive,
       canDeny: rental.status === RentalStatus.CONFIRMED,
       canAccept: rental.status === RentalStatus.PENDING_PAYMENT,
-      formattedStartDate: formatDate(rental.startDate),
-      formattedEndDate: formatDate(rental.endDate),
+      listing: {
+        id: rental.listing.id,
+        title: rental.listing.title,
+        description: rental.listing.description,
+        photos: rental.listing.photos,
+        hand: rental.listing.hand,
+        gender: rental.listing.gender,
+        city: rental.listing.city,
+        state: rental.listing.state,
+        pricePerDay: Number(rental.listing.pricePerDay),
+      },
+      renter: {
+        id: rental.renter.id,
+        firstName: rental.renter.firstName,
+        lastName: rental.renter.lastName,
+        email: rental.renter.email,
+        avatarUrl: rental.renter.avatarUrl,
+        location: rental.renter.location,
+      },
     };
+  }
+
+  /**
+   * Get rental status only - lightweight for payment polling
+   */
+  async getRentalStatus(id: string): Promise<{ id: string; status: string }> {
+    const rental = await this.rentalRepository.findOne({
+      where: { id },
+      select: ['id', 'status'],
+    });
+
+    if (!rental) {
+      throw new NotFoundException('Rental not found');
+    }
+
+    return { id: rental.id, status: rental.status };
   }
 
   /**

@@ -151,10 +151,19 @@ export class RentalsController {
     return this.rentalsService.createCheckoutSession(id, user.id);
   }
 
-  @Get(':id')
-  @ApiOperation({ summary: 'Get rental by ID' })
-  @ApiResponse({ status: 200, description: 'Rental retrieved' })
-  async getRentalById(@Param('id') id: string) {
-    return this.rentalsService.findById(id);
+  @Get(':id/status')
+  @ApiOperation({
+    summary: 'Get rental status only (lightweight for payment polling)',
+  })
+  @ApiResponse({ status: 200, description: 'Rental status retrieved' })
+  async getRentalStatus(@Param('id') id: string) {
+    return this.rentalsService.getRentalStatus(id);
+  }
+
+  @Get('requests/:id')
+  @ApiOperation({ summary: 'Get rental request detail for owner view' })
+  @ApiResponse({ status: 200, description: 'Rental request detail retrieved' })
+  async getRentalRequestById(@Param('id') id: string) {
+    return this.rentalsService.getRentalRequestById(id);
   }
 }
