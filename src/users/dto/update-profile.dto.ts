@@ -28,8 +28,8 @@ export class UpdateProfileDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  @MaxLength(100)
-  country?: string;
+  @MaxLength(255)
+  location?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

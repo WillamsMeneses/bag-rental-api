@@ -124,7 +124,7 @@ export class UsersService {
       lastName: user.lastName ?? null,
       birthday: user.birthday ?? null,
       phone: user.phone ?? null,
-      country: user.country ?? null,
+      location: user.location ?? null,
       avatarUrl: user.avatarUrl ?? null,
       stripeAccountId: user.stripeAccountId ?? null,
       emailVerified: user.emailVerified,
@@ -139,7 +139,7 @@ export class UsersService {
     if (dto.lastName !== undefined) user.lastName = dto.lastName;
     if (dto.birthday !== undefined) user.birthday = dto.birthday;
     if (dto.phone !== undefined) user.phone = dto.phone;
-    if (dto.country !== undefined) user.country = dto.country;
+    if (dto.location !== undefined) user.location = dto.location;
     if (dto.avatarUrl !== undefined) user.avatarUrl = dto.avatarUrl;
 
     await this.userRepository.save(user);
