@@ -101,6 +101,13 @@ export class User {
 
   @Column({
     type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
+  location!: string | null;
+
+  @Column({
+    type: 'varchar',
     length: 500,
     nullable: true,
     name: 'avatar_url',
