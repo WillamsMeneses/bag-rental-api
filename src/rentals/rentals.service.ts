@@ -20,6 +20,7 @@ import Stripe from 'stripe';
 import { StripeService } from 'src/stripe/stripe.service';
 import { ConfigService } from '@nestjs/config';
 import { NotificationsService } from 'src/notifications/notifications.service';
+import dayjs from 'dayjs';
 
 @Injectable()
 export class RentalsService {
@@ -372,14 +373,8 @@ export class RentalsService {
     const totalYouReceive = +(totalAmount - commissionFee).toFixed(2);
 
     // Formatear fechas
-    const formatDate = (date: Date): string => {
-      return date
-        .toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-        })
-        .replace(/\//g, '/');
+    const formatDate = (dateStr: string | Date): string => {
+      return dayjs(dateStr).format('MM/DD/YYYY');
     };
 
     // Devolver rental original con propiedades adicionales
