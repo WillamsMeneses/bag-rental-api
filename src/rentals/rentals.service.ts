@@ -19,6 +19,7 @@ import {
 import Stripe from 'stripe';
 import { StripeService } from 'src/stripe/stripe.service';
 import { ConfigService } from '@nestjs/config';
+import { NotificationsService } from 'src/notifications/notifications.service';
 
 @Injectable()
 export class RentalsService {
@@ -29,6 +30,7 @@ export class RentalsService {
     private readonly listingRepository: Repository<BagListing>,
     private readonly stripeService: StripeService,
     private readonly configService: ConfigService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   /**
@@ -171,8 +173,9 @@ export class RentalsService {
     rental.paymentIntentId = paymentIntentId || null;
     rental.paidAt = new Date();
     rental.expiresAt = null;
-
-    return this.rentalRepository.save(rental);
+    const savedRental = await this.rentalRepository.save(rental);
+    void this.notificationsService.notifyRentalConfirmed(savedRental);
+    return savedRental;
   }
 
   /**
@@ -249,7 +252,10 @@ export class RentalsService {
     rental.refundAmount = refundAmount;
     rental.refundedAt = refundAmount > 0 ? new Date() : null;
 
-    return this.rentalRepository.save(rental);
+    // return this.rentalRepository.save(rental);
+    const savedRental = await this.rentalRepository.save(rental);
+    void this.notificationsService.notifyRentalCancelledByRenter(savedRental);
+    return savedRental;
   }
 
   /**
