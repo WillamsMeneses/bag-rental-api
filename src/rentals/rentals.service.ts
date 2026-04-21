@@ -338,9 +338,19 @@ export class RentalsService {
   }
 
   /**
-   * Get rental by ID
+   * Get rental by ID with full details for rental request view
    */
-  async findById(id: string): Promise<Rental> {
+  async findById(id: string): Promise<
+    Rental & {
+      commissionFee: number;
+      commissionFeePercent: number;
+      totalYouReceive: number;
+      canDeny: boolean;
+      canAccept: boolean;
+      formattedStartDate: string;
+      formattedEndDate: string;
+    }
+  > {
     const rental = await this.rentalRepository.findOne({
       where: { id },
       relations: ['listing', 'renter', 'owner'],
@@ -350,7 +360,39 @@ export class RentalsService {
       throw new NotFoundException('Rental not found');
     }
 
-    return rental;
+    // Obtener porcentaje de comisión del env
+    const commissionFeePercent =
+      this.configService.get<number>('STRIPE_PLATFORM_FEE_PERCENT') ?? 10;
+
+    // Calcular fees
+    const totalAmount = Number(rental.totalAmount);
+    const commissionFee = +(totalAmount * (commissionFeePercent / 100)).toFixed(
+      2,
+    );
+    const totalYouReceive = +(totalAmount - commissionFee).toFixed(2);
+
+    // Formatear fechas
+    const formatDate = (date: Date): string => {
+      return date
+        .toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+        })
+        .replace(/\//g, '/');
+    };
+
+    // Devolver rental original con propiedades adicionales
+    return {
+      ...rental,
+      commissionFee,
+      commissionFeePercent,
+      totalYouReceive,
+      canDeny: rental.status === RentalStatus.CONFIRMED,
+      canAccept: rental.status === RentalStatus.PENDING_PAYMENT,
+      formattedStartDate: formatDate(rental.startDate),
+      formattedEndDate: formatDate(rental.endDate),
+    };
   }
 
   /**

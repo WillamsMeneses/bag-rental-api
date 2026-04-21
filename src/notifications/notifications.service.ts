@@ -6,7 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Notification, NotificationType } from './entities/notification.entity';
-import { Rental, RentalStatus } from '../rentals/entities/rental.entity';
+import { Rental } from '../rentals/entities/rental.entity';
 import {
   createPaginatedResponse,
   PaginatedResponse,
@@ -133,101 +133,6 @@ export class NotificationsService {
 
     const [notifications, total] = await qb.getManyAndCount();
     return createPaginatedResponse(notifications, total, page, limit);
-  }
-
-  // ─── Get notification by ID (full detail for the notification screen) ─────
-  // Returns: notification + rental + listing + renter + owner
-  // Also computes: commissionFee, totalYouReceive for the owner view
-
-  async getNotificationById(
-    userId: string,
-    notificationId: string,
-  ): Promise<Record<string, unknown>> {
-    const notification = await this.notificationRepository.findOne({
-      where: { id: notificationId },
-      relations: [
-        'rental',
-        'rental.listing',
-        'rental.listing.clubs',
-        'rental.renter',
-        'rental.owner',
-      ],
-    });
-
-    if (!notification) throw new NotFoundException('Notification not found');
-    if (notification.userId !== userId)
-      throw new ForbiddenException('Not authorized');
-
-    // Auto mark as read
-    if (!notification.isRead) {
-      notification.isRead = true;
-      notification.readAt = new Date();
-      await this.notificationRepository.save(notification);
-    }
-
-    const rental = notification.rental;
-
-    // Build detail response matching the UI
-    const detail: Record<string, unknown> = {
-      id: notification.id,
-      type: notification.type,
-      title: notification.title,
-      message: notification.message,
-      isRead: notification.isRead,
-      readAt: notification.readAt,
-      createdAt: notification.createdAt,
-    };
-
-    if (rental) {
-      const totalAmount = Number(rental.totalAmount);
-      const commissionFeePercent = 5;
-      const commissionFee = +(
-        totalAmount *
-        (commissionFeePercent / 100)
-      ).toFixed(2);
-      const totalYouReceive = +(totalAmount - commissionFee).toFixed(2);
-
-      detail['rental'] = {
-        id: rental.id,
-        status: rental.status,
-        startDate: this.toDateString(rental.startDate),
-        endDate: this.toDateString(rental.endDate),
-        totalDays: rental.totalDays,
-        pricePerDay: rental.pricePerDay,
-        totalAmount,
-        commissionFee,
-        commissionFeePercent,
-        totalYouReceive,
-        canDeny: rental.status === RentalStatus.CONFIRMED,
-      };
-
-      if (rental.listing) {
-        detail['listing'] = {
-          id: rental.listing.id,
-          title: rental.listing.title,
-          description: rental.listing.description,
-          photos: rental.listing.photos,
-          hand: rental.listing.hand,
-          gender: rental.listing.gender,
-          city: rental.listing.city,
-          state: rental.listing.state,
-          clubs: rental.listing.clubs,
-        };
-      }
-
-      if (rental.renter) {
-        detail['renter'] = {
-          id: rental.renter.id,
-          firstName: rental.renter.firstName,
-          lastName: rental.renter.lastName,
-          email: rental.renter.email,
-          avatarUrl: rental.renter.avatarUrl,
-          country: rental.renter.country,
-        };
-      }
-    }
-
-    return detail;
   }
 
   // ─── Mark one as read ─────────────────────────────────────────────────────
