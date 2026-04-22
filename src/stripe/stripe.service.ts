@@ -103,4 +103,10 @@ export class StripeService {
       type: 'account_onboarding',
     });
   }
+
+  async createRefund(paymentIntentId: string): Promise<Stripe.Refund> {
+    return this.stripe.refunds.create({
+      payment_intent: paymentIntentId,
+    });
+  }
 }

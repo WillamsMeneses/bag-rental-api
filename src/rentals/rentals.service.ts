@@ -3,7 +3,6 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
-  Inject,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, Not } from 'typeorm';
@@ -29,8 +28,6 @@ export class RentalsService {
     @InjectRepository(Rental)
     private readonly rentalRepository: Repository<Rental>,
     @InjectRepository(BagListing)
-    @Inject('STRIPE_CLIENT')
-    private readonly stripe: Stripe,
     private readonly listingRepository: Repository<BagListing>,
     private readonly stripeService: StripeService,
     private readonly configService: ConfigService,
@@ -288,10 +285,7 @@ export class RentalsService {
     // Reembolso automático via Stripe si hay paymentIntentId
     if (rental.paymentIntentId) {
       try {
-        await this.stripe.refunds.create({
-          payment_intent: rental.paymentIntentId,
-          // Sin amount = reembolso completo
-        });
+        await this.stripeService.createRefund(rental.paymentIntentId);
       } catch (err) {
         throw new BadRequestException(
           'Stripe refund failed: ' + (err as Error).message,
