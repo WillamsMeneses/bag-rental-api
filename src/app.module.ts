@@ -30,7 +30,24 @@ import { CloudinaryModule } from './cloudinary/cloudinary.module';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {
+        if (process.env.NODE_ENV === 'test') {
+          console.log('🧪 TEST MODE - Using Docker database');
+          return {
+            type: 'postgres',
+            host: process.env.DB_HOST || 'localhost',
+            port: parseInt(process.env.DB_PORT || '5433', 10),
+            username: process.env.DB_USERNAME || 'test_user',
+            password: process.env.DB_PASSWORD || 'test_password',
+            database: process.env.DB_NAME || 'bag_rental_test',
+            autoLoadEntities: true,
+            synchronize: true, // En tests, sincronizar
+            logging: false,
+            dropSchema: false,
+          };
+        }
+
         const dbConfig = configService.get('database');
+
         // Verificar configuración
         if (!dbConfig) {
           throw new Error('Database configuration not found');

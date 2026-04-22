@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  postgres-test:
+    image: postgres:16-alpine
+    container_name: bag_rental_test_db
+    environment:
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+      POSTGRES_DB: bag_rental_test
+    ports:
+      - '5433:5432'   # Puerto distinto para no pisar el de dev
+    tmpfs:
+      - /var/lib/postgresql/data  # En memoria: más rápido y limpio entre runs
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U test_user -d bag_rental_test']
+      interval: 5s
+      timeout: 5s
+      retries: 5
