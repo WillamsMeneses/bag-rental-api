@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  Inject,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, Not } from 'typeorm';
@@ -28,6 +29,8 @@ export class RentalsService {
     @InjectRepository(Rental)
     private readonly rentalRepository: Repository<Rental>,
     @InjectRepository(BagListing)
+    @Inject('STRIPE_CLIENT')
+    private readonly stripe: Stripe,
     private readonly listingRepository: Repository<BagListing>,
     private readonly stripeService: StripeService,
     private readonly configService: ConfigService,
@@ -272,13 +275,9 @@ export class RentalsService {
       relations: ['listing'],
     });
 
-    if (!rental) {
-      throw new NotFoundException('Rental not found');
-    }
-
-    if (rental.ownerId !== userId) {
+    if (!rental) throw new NotFoundException('Rental not found');
+    if (rental.ownerId !== userId)
       throw new ForbiddenException('Not authorized to cancel this rental');
-    }
 
     if (
       ![RentalStatus.CONFIRMED, RentalStatus.ACTIVE].includes(rental.status)
@@ -286,11 +285,25 @@ export class RentalsService {
       throw new BadRequestException('Cannot cancel this rental');
     }
 
+    // Reembolso automático via Stripe si hay paymentIntentId
+    if (rental.paymentIntentId) {
+      try {
+        await this.stripe.refunds.create({
+          payment_intent: rental.paymentIntentId,
+          // Sin amount = reembolso completo
+        });
+      } catch (err) {
+        throw new BadRequestException(
+          'Stripe refund failed: ' + (err as Error).message,
+        );
+      }
+    }
+
     rental.status = RentalStatus.CANCELLED_BY_OWNER;
     rental.cancelledAt = new Date();
     rental.cancelledBy = userId;
     rental.cancellationReason = cancelDto.reason || null;
-    rental.refundAmount = Number(rental.totalAmount); // Reembolso completo
+    rental.refundAmount = Number(rental.totalAmount);
     rental.refundedAt = new Date();
 
     return this.rentalRepository.save(rental);
