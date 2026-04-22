@@ -452,6 +452,44 @@ export class RentalsService {
   /**
    * Get blocked dates for a listing (for calendar)
    */
+  // async getBlockedDates(listingId: string): Promise<string[]> {
+  //   const rentals = await this.rentalRepository.find({
+  //     where: {
+  //       listingId,
+  //       status: In([
+  //         RentalStatus.PENDING_PAYMENT,
+  //         RentalStatus.CONFIRMED,
+  //         RentalStatus.ACTIVE,
+  //       ]),
+  //     },
+  //     select: ['startDate', 'endDate'],
+  //   });
+
+  //   // Convertir a array de fechas individuales
+  //   const blockedDates: string[] = [];
+  //   rentals.forEach((rental) => {
+  //     // Manejar tanto Date objects como strings
+  //     const startDate =
+  //       typeof rental.startDate === 'string'
+  //         ? new Date(rental.startDate)
+  //         : rental.startDate;
+  //     const endDate =
+  //       typeof rental.endDate === 'string'
+  //         ? new Date(rental.endDate)
+  //         : rental.endDate;
+
+  //     const current = new Date(startDate);
+  //     const end = new Date(endDate);
+
+  //     while (current <= end) {
+  //       blockedDates.push(current.toISOString().split('T')[0]);
+  //       current.setDate(current.getDate() + 1);
+  //     }
+  //   });
+
+  //   return [...new Set(blockedDates)]; // Remove duplicates
+  // }
+
   async getBlockedDates(listingId: string): Promise<string[]> {
     const rentals = await this.rentalRepository.find({
       where: {
@@ -465,29 +503,36 @@ export class RentalsService {
       select: ['startDate', 'endDate'],
     });
 
-    // Convertir a array de fechas individuales
-    const blockedDates: string[] = [];
-    rentals.forEach((rental) => {
-      // Manejar tanto Date objects como strings
-      const startDate =
-        typeof rental.startDate === 'string'
-          ? new Date(rental.startDate)
-          : rental.startDate;
-      const endDate =
-        typeof rental.endDate === 'string'
-          ? new Date(rental.endDate)
-          : rental.endDate;
+    // Helper que formatea fecha sin conversión de timezone
+    const toDateString = (date: Date | string): string => {
+      if (typeof date === 'string') {
+        // Si ya viene como string 'YYYY-MM-DD', usarlo directo
+        return date.split('T')[0];
+      }
+      // Usar UTC values para evitar shift de timezone
+      const y = date.getUTCFullYear();
+      const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+      const d = String(date.getUTCDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    };
 
-      const current = new Date(startDate);
-      const end = new Date(endDate);
+    const blockedDates: string[] = [];
+
+    rentals.forEach((rental) => {
+      const startStr = toDateString(rental.startDate);
+      const endStr = toDateString(rental.endDate);
+
+      // Iterar usando strings UTC para no perder días
+      const current = new Date(startStr + 'T00:00:00Z');
+      const end = new Date(endStr + 'T00:00:00Z');
 
       while (current <= end) {
-        blockedDates.push(current.toISOString().split('T')[0]);
-        current.setDate(current.getDate() + 1);
+        blockedDates.push(toDateString(current));
+        current.setUTCDate(current.getUTCDate() + 1);
       }
     });
 
-    return [...new Set(blockedDates)]; // Remove duplicates
+    return [...new Set(blockedDates)];
   }
 
   /**
@@ -541,7 +586,7 @@ export class RentalsService {
     });
 
     return {
-      clientSecret: paymentIntent.client_secret!,
+      clientSecret: paymentIntent.client_secret,
       paymentIntentId: paymentIntent.id,
     };
   }
@@ -584,7 +629,7 @@ export class RentalsService {
       cancelUrl: `${this.configService.get('FRONTEND_URL')}/listings/${rental.listingId}?paymentCancelled=true`,
     });
 
-    return { url: session.url! };
+    return { url: session.url };
   }
 
   async handleStripeWebhook(payload: Buffer, signature: string): Promise<void> {

@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   postgres-test:
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     container_name: bag_rental_test_db
     environment:
       POSTGRES_USER: test_user
@@ -12,6 +12,8 @@ services:
       - '5433:5432'   # Puerto distinto para no pisar el de dev
     tmpfs:
       - /var/lib/postgresql/data  # En memoria: más rápido y limpio entre runs
+    volumes:
+      - ./dump_completo.sql:/docker-entrypoint-initdb.d/01-dump.sql
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U test_user -d bag_rental_test']
       interval: 5s

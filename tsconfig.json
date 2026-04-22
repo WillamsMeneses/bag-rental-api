@@ -26,6 +26,10 @@
     },
     "types": ["jest", "node"]
   },
-  "include": ["src/**/*", "test/**/*"],
+  "include": [
+    "src/**/*",
+    "jest.config.ts",
+    "test/**/*"
+  ],
   "exclude": ["node_modules", "dist"]
 }
