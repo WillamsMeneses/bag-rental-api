@@ -300,7 +300,10 @@ export class RentalsService {
     rental.refundAmount = Number(rental.totalAmount);
     rental.refundedAt = new Date();
 
-    return this.rentalRepository.save(rental);
+    const savedRental = await this.rentalRepository.save(rental);
+
+    await this.notificationsService.notifyRentalCancelledByOwner(savedRental);
+    return savedRental;
   }
 
   /**

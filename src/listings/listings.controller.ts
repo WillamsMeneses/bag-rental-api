@@ -26,10 +26,8 @@ import {
 } from '../common/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { OptionalJwtAuthGuard } from 'src/common/guards/optional-jwt.guard';
-import {
-  OptionalUser,
-  OptionalUserData,
-} from 'src/common/decorators/optional-auth.decorator';
+import { OptionalUser } from 'src/common/decorators/optional-auth.decorator';
+import type { OptionalUserData } from 'src/common/decorators/optional-auth.decorator';
 import { ListingPaginationDto } from './dto/listing-pagination.dto';
 
 @ApiTags('Listings')

@@ -13,6 +13,7 @@ import {
   ApiConsumes,
 } from '@nestjs/swagger';
 import { CloudinaryService } from './cloudinary.service';
+import multer from 'multer';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
@@ -40,7 +41,7 @@ export class CloudinaryController {
     }),
   )
   async uploadImage(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: multer.File,
   ): Promise<{ url: string }> {
     if (!file) throw new BadRequestException('No file provided');
     const url = await this.cloudinaryService.uploadImage(file);

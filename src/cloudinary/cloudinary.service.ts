@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v2 as cloudinary } from 'cloudinary';
+import type { File } from 'multer';
 
 @Injectable()
 export class CloudinaryService {
@@ -13,7 +14,7 @@ export class CloudinaryService {
   }
 
   // Upload a file buffer to Cloudinary and return the secure URL
-  async uploadImage(file: Express.Multer.File): Promise<string> {
+  async uploadImage(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
       cloudinary.uploader
         .upload_stream({ folder: 'bag_rental' }, (error, result) => {
@@ -25,7 +26,7 @@ export class CloudinaryService {
     });
   }
 
-  async uploadImages(files: Express.Multer.File[]): Promise<string[]> {
+  async uploadImages(files: File[]): Promise<string[]> {
     return Promise.all(files.map((f) => this.uploadImage(f)));
   }
 

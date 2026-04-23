@@ -33,7 +33,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
           exception.message;
         errors = responseObj.errors || null;
       } else {
-        message = exceptionResponse;
+        message =
+          typeof exceptionResponse === 'string'
+            ? exceptionResponse
+            : (exceptionResponse as any).message || 'Internal server error';
       }
     } else if (exception instanceof Error) {
       message = exception.message;
