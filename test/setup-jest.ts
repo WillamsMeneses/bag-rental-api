@@ -1,7 +1,7 @@
 // Forzar ambiente de test
 process.env.NODE_ENV = 'test';
 
-// Variables de entorno para tests
+// Variables de entorno para tests22
 process.env.DB_HOST = 'localhost';
 process.env.DB_PORT = '5433';
 process.env.DB_USERNAME = 'test_user';
