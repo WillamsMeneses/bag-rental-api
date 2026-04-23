@@ -381,60 +381,6 @@ describe('RentalsService (unit)', () => {
   // ─────────────────────────────────────────────
   // getUserRentals
   // ─────────────────────────────────────────────
-
-  // describe('getUserRentals', () => {
-  //   it('Given page=1 and limit=10, When getUserRentals is called, Then returns first page with correct meta', async () => {
-  //     // given
-  //     const rentals = [mockRental(), mockRental()];
-  //     rentalRepo.findAndCount.mockResolvedValue([rentals, 2]);
-
-  //     // when
-  //     const result = await service.getUserRentals(RENTER_ID, {
-  //       page: 1,
-  //       limit: 10,
-  //     });
-
-  //     // then
-  //     expect(rentalRepo.findAndCount).toHaveBeenCalledWith(
-  //       expect.objectContaining({
-  //         where: { renterId: RENTER_ID, status: expect.anything() },
-  //         relations: ['listing', 'owner'],
-  //         order: { createdAt: 'DESC' },
-  //         take: 10,
-  //         skip: 0,
-  //       }),
-  //     );
-  //     expect(result.data).toHaveLength(2);
-  //     expect(result.meta.currentPage).toBe(1);
-  //     expect(result.meta.total).toBe(2);
-  //   });
-
-  //   it('Given page=2 and limit=5, When getUserRentals is called, Then skips the first 5 records', async () => {
-  //     // given
-  //     rentalRepo.findAndCount.mockResolvedValue([[], 12]);
-
-  //     // when
-  //     await service.getUserRentals(RENTER_ID, { page: 2, limit: 5 });
-
-  //     // then
-  //     expect(rentalRepo.findAndCount).toHaveBeenCalledWith(
-  //       expect.objectContaining({ skip: 5, take: 5 }),
-  //     );
-  //   });
-
-  //   it('Given no pagination params, When getUserRentals is called, Then defaults to page=1 limit=10', async () => {
-  //     // given
-  //     rentalRepo.findAndCount.mockResolvedValue([[], 0]);
-
-  //     // when
-  //     await service.getUserRentals(RENTER_ID, {});
-
-  //     // then
-  //     expect(rentalRepo.findAndCount).toHaveBeenCalledWith(
-  //       expect.objectContaining({ skip: 0, take: 10 }),
-  //     );
-  //   });
-  // });
   describe('getUserRentals', () => {
     it('Given page=1 limit=10, When getUserRentals, Then returns paginated response with pagination', async () => {
       const rentals = [mockRental(), mockRental()];
