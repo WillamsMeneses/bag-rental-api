@@ -6,7 +6,11 @@ import { DataSource, Repository } from 'typeorm';
 import { RentalsService } from './rentals.service';
 import { AuthService } from '../auth/auth.service';
 import { Rental, RentalStatus } from './entities/rental.entity';
-import { BagListing } from '../listings/entities/bag-listing.entity';
+import {
+  BagListing,
+  HandType,
+  UserGender,
+} from '../listings/entities/bag-listing.entity';
 import {
   NotFoundException,
   BadRequestException,
@@ -17,7 +21,8 @@ import { createTestingApp } from 'test/helper/create-test-app';
 // IDs reales de la DB de test — se populan en beforeAll via login
 let RENTER_ID: string;
 let OWNER_ID: string;
-const LISTING_ID = 'e34d17ba-2d70-4c4f-bffe-b0dacdc0bfc2';
+// const LISTING_ID = 'e34d17ba-2d70-4c4f-bffe-b0dacdc0bfc2';
+const LISTING_ID = 'e7d42e52-cf50-4cd0-8c75-28ea79d99842';
 
 // Fechas dinámicas: mañana y pasado mañana (no se puede rentar hoy)
 function getFutureDates(daysFromNow = 1, durationDays = 4) {
@@ -72,8 +77,8 @@ describe('RentalsService (integration)', () => {
         pricePerDay: 50,
         title: 'Titleist Set',
         description: 'Nice clubs',
-        hand: 'right',
-        gender: 'unisex',
+        hand: HandType.RIGHT_HANDED,
+        gender: UserGender.MALE,
         city: 'Buenos Aires',
         state: 'BA',
       });
@@ -81,10 +86,14 @@ describe('RentalsService (integration)', () => {
   });
   beforeEach(async () => {
     // Esperar un tick para que las notificaciones fire-and-forget terminen
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
     await dataSource.query('DELETE FROM notifications');
     await dataSource.query('DELETE FROM rentals');
+  });
+  afterEach(async () => {
+    // Dar tiempo a que terminen las notificaciones
+    await new Promise((resolve) => setTimeout(resolve, 200));
   });
   afterAll(async () => {
     await module.close();
@@ -134,18 +143,34 @@ describe('RentalsService (integration)', () => {
       expect(result.available).toBe(true);
     });
 
+    // it('dado que hay rentas superpuestas, retorna available: false con blockedDates', async () => {
+    //   const { startDate, endDate } = getFutureDates();
+    //   await seedRental({
+    //     status: RentalStatus.CONFIRMED,
+    //     startDate: new Date(startDate),
+    //     endDate: new Date(endDate),
+    //   });
+
+    //   const result = await service.checkAvailability({
+    //     listingId: LISTING_ID,
+    //     startDate,
+    //     endDate,
+    //   });
+    //   expect(result.available).toBe(false);
+    //   expect(result.blockedDates).toBeDefined();
+    // });
     it('dado que hay rentas superpuestas, retorna available: false con blockedDates', async () => {
-      const { startDate, endDate } = getFutureDates();
+      const dates = getFutureDates(); // Única llamada, guardar resultado
       await seedRental({
         status: RentalStatus.CONFIRMED,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
+        startDate: new Date(dates.startDate),
+        endDate: new Date(dates.endDate),
       });
 
       const result = await service.checkAvailability({
         listingId: LISTING_ID,
-        startDate,
-        endDate,
+        startDate: dates.startDate,
+        endDate: dates.endDate,
       });
       expect(result.available).toBe(false);
       expect(result.blockedDates).toBeDefined();
