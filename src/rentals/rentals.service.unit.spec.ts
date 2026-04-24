@@ -152,6 +152,7 @@ describe('RentalsService (unit)', () => {
     notificationsService = {
       notifyRentalConfirmed: jest.fn().mockResolvedValue(undefined),
       notifyRentalCancelledByRenter: jest.fn().mockResolvedValue(undefined),
+      notifyRentalCancelledByOwner: jest.fn().mockResolvedValue(undefined),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -228,7 +229,9 @@ describe('RentalsService (unit)', () => {
       });
       rentalRepo.findOne.mockResolvedValue(rental);
       stripeService.createRefund.mockResolvedValue({ id: 'ref_123' } as any);
-      rentalRepo.save.mockSave();
+      rentalRepo.save.mockImplementation(async (entity: any) => ({
+        ...entity,
+      }));
 
       // when
       const result = await service.cancelByOwner(OWNER_ID, RENTAL_ID, {
@@ -252,7 +255,9 @@ describe('RentalsService (unit)', () => {
       });
       rentalRepo.findOne.mockResolvedValue(rental);
       stripeService.createRefund.mockResolvedValue({ id: 'ref_456' } as any);
-      rentalRepo.save.mockSave();
+      rentalRepo.save.mockImplementation(async (entity: any) => ({
+        ...entity,
+      }));
 
       // when
       const result = await service.cancelByOwner(OWNER_ID, RENTAL_ID, {});
@@ -269,7 +274,9 @@ describe('RentalsService (unit)', () => {
         paymentIntentId: null,
       });
       rentalRepo.findOne.mockResolvedValue(rental);
-      rentalRepo.save.mockSave();
+      rentalRepo.save.mockImplementation(async (entity: any) => ({
+        ...entity,
+      }));
 
       // when
       const result = await service.cancelByOwner(OWNER_ID, RENTAL_ID, {});
